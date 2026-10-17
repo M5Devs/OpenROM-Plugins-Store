@@ -1,0 +1,40 @@
+{
+  "id": "nintendo-nkit",
+  "name": "Nintendo NKit & ZArchive Suite",
+  "version": "3.1.0",
+  "author": "Claus Valca",
+  "publisher_id": "m5dev",
+  "min_core_version": "3.9.0",
+  "license": "MIT",
+  "description": "Standalone NKit suite for Nintendo GameCube, Wii, and Wii U ZArchive compression.",
+  "homepage": "https://github.com/M5Devs",
+  "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/wiiu.png",
+  "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v3.1.0/nintendo-nkit.orplug",
+  "tags": [
+    "nintendo",
+    "nkit",
+    "zarchive",
+    "wua",
+    "wiiu",
+    "gamecube"
+  ],
+  "extensions": [
+    ".iso",
+    ".wud",
+    ".wux",
+    ".nkit.iso",
+    ".wua"
+  ],
+  "binaries": {
+    "win32": "nkit.exe",
+    "linux": "nkit",
+    "darwin": "nkit"
+  },
+  "conversions": [
+    {
+      "from": "WUD",
+      "to": "WUA",
+      "command": "{bin} convert --in {input} --out {output}"
+    }
+  ]
+}

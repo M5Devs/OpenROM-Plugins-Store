@@ -1,7 +1,10 @@
 {
   "id": "m5dev",
-  "name": "Yusuf Ezz (M5 Dev)",
+  "name": "Claus Valca (M5 Dev)",
+  "github_username": "ClausValcaTD",
   "github": "https://github.com/M5Devs",
+  "avatar_url": "https://github.com/ClausValcaTD.png",
+  "bio": "Creator & Core Architect of OpenROM and Official Plugin Toolchains",
   "is_verified": true,
   "badge": "Core Architect"
 }

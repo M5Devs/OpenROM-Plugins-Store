@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin Maker & AI Generator - OpenROM</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">OR</div>
+        <div>OpenROM <span>Store</span></div>
+      </a>
+      <button class="mobile-menu-btn" onclick="toggleMobileNav()">☰</button>
+      <nav class="nav-links" id="navLinks">
+        <a href="index.html">Store</a>
+        <a href="maker.html" class="active">⚡ Plugin Maker</a>
+        <a href="https://github.com/M5Devs/OpenROM-Plugins-Store" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <div style="margin-bottom: 2rem; text-align: center;">
+      <h1 style="font-size: 2.25rem; font-weight: 900; color: var(--text-bright); margin-bottom: 0.5rem;">
+        ⚡ OpenROM Plugin Maker & AI Prompt Wizard
+      </h1>
+      <p style="color: var(--text-muted); max-width: 650px; margin: 0 auto;">
+        Create standardized manifest files visually or generate optimized prompts for ChatGPT / Claude to write manifests for you.
+      </p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('visualTab', this)">🛠️ Visual Form Builder</button>
+      <button class="tab-btn" onclick="switchTab('aiTab', this)">🤖 AI Prompt Wizard</button>
+    </div>
+
+    <!-- Tab 1: Visual Form Builder -->
+    <div id="visualTab" class="tab-content active">
+      <div class="detail-card">
+        <form id="manifestForm" onsubmit="generateAndDownloadManifest(event)">
+          <h3 style="color: var(--text-bright); margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+            1. Core Identity & Author Info
+          </h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Plugin ID <span>*</span></label>
+              <input type="text" id="p_id" class="form-control" placeholder="e.g. ps2-chdman" required>
+            </div>
+            <div class="form-group">
+              <label>Plugin Display Name <span>*</span></label>
+              <input type="text" id="p_name" class="form-control" placeholder="e.g. PS2 CHDMAN Tool" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Author Display Name <span>*</span></label>
+              <input type="text" id="p_author" class="form-control" value="Claus Valca" required>
+            </div>
+            <div class="form-group">
+              <label>Publisher ID <span>*</span></label>
+              <input type="text" id="p_publisher_id" class="form-control" value="m5dev" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Version <span>*</span></label>
+              <input type="text" id="p_version" class="form-control" value="1.0.0" required>
+            </div>
+            <div class="form-group">
+              <label>Min Core Version <span>*</span></label>
+              <input type="text" id="p_min_core" class="form-control" value="3.9.0" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>License <span>*</span></label>
+              <input type="text" id="p_license" class="form-control" value="MIT" required>
+            </div>
+            <div class="form-group">
+              <label>Tags (comma-separated)</label>
+              <input type="text" id="p_tags" class="form-control" placeholder="ps2, chdman, compression, iso">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Description <span>*</span></label>
+            <textarea id="p_description" class="form-control" placeholder="Describe what this ROM conversion tool does..." required></textarea>
+          </div>
+
+          <h3 style="color: var(--text-bright); margin-top: 2rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+            2. File Extensions & Command Template
+          </h3>
+
+          <div class="form-group">
+            <label>Supported Extensions (comma-separated) <span>*</span></label>
+            <input type="text" id="p_extensions" class="form-control" placeholder=".iso, .cue, .bin, .chd" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Input Format (e.g. ISO) <span>*</span></label>
+              <input type="text" id="p_from" class="form-control" value="ISO" required>
+            </div>
+            <div class="form-group">
+              <label>Output Format (e.g. CHD) <span>*</span></label>
+              <input type="text" id="p_to" class="form-control" value="CHD" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Command Template <span>*</span></label>
+            <input type="text" id="p_command" class="form-control" value="{bin} createcd -i {input} -o {output}" required>
+          </div>
+
+          <h3 style="color: var(--text-bright); margin-top: 2rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+            3. Executables & Distribution URLs
+          </h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Windows Executable</label>
+              <input type="text" id="p_bin_win" class="form-control" value="chdman.exe">
+            </div>
+            <div class="form-group">
+              <label>Linux Executable</label>
+              <input type="text" id="p_bin_linux" class="form-control" value="chdman">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>macOS Executable</label>
+              <input type="text" id="p_bin_darwin" class="form-control" value="chdman">
+            </div>
+            <div class="form-group">
+              <label>Homepage URL</label>
+              <input type="url" id="p_homepage" class="form-control" value="https://github.com/M5Devs">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Icon Image URL</label>
+              <input type="url" id="p_icon" class="form-control" placeholder="https://example.com/icon.png">
+            </div>
+            <div class="form-group">
+              <label>Download .orplug Package URL</label>
+              <input type="url" id="p_download" class="form-control" placeholder="https://github.com/.../plugin.orplug">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; margin-top: 1.5rem;">
+            💾 Generate & Download manifest.json
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tab 2: AI Prompt Wizard -->
+    <div id="aiTab" class="tab-content">
+      <div class="detail-card">
+        <h3 style="color: var(--text-bright); margin-bottom: 1rem;">Fill-in-the-Blank Placeholders</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+          Fill out the details below and click <strong>Copy AI Prompt</strong> to paste into ChatGPT or Claude.
+        </p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>[WRITE TOOL NAME HERE]</label>
+            <input type="text" id="ai_tool" class="form-control" value="CHDMAN PS2 Tool" oninput="updatePrompt()">
+          </div>
+          <div class="form-group">
+            <label>[GITHUB REPO HERE]</label>
+            <input type="text" id="ai_repo" class="form-control" value="https://github.com/mamedev/mame" oninput="updatePrompt()">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>[INPUT FORMATS]</label>
+            <input type="text" id="ai_input" class="form-control" value="ISO, BIN/CUE, GDI" oninput="updatePrompt()">
+          </div>
+          <div class="form-group">
+            <label>[OUTPUT FORMATS]</label>
+            <input type="text" id="ai_output" class="form-control" value="CHD (Compressed Hunks of Data)" oninput="updatePrompt()">
+          </div>
+        </div>
+
+        <h3 style="color: var(--text-bright); margin-top: 1.5rem; margin-bottom: 0.5rem;">Engineered Prompt Preview</h3>
+        <div id="promptBox" class="code-box" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 400px; overflow-y: auto;">
+          <!-- Live prompt -->
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;" onclick="copyPrompt()">
+          📋 Copy AI Prompt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">📋 AI Prompt copied to clipboard!</div>
+
+  <footer>
+    <p>&copy; OpenROM Project. Maintained by <a href="publisher.html?id=m5dev">Claus Valca (M5 Dev)</a> and open-source contributors.</p>
+  </footer>
+
+  <script>
+    function toggleMobileNav() {
+      document.getElementById('navLinks').classList.toggle('mobile-open');
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function generateAndDownloadManifest(e) {
+      e.preventDefault();
+
+      const tagsRaw = document.getElementById('p_tags').value;
+      const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+      const extRaw = document.getElementById('p_extensions').value;
+      const extensions = extRaw ? extRaw.split(',').map(e => e.trim().startsWith('.') ? e.trim() : '.' + e.trim()).filter(Boolean) : [];
+
+      const manifest = {
+        id: document.getElementById('p_id').value.trim(),
+        name: document.getElementById('p_name').value.trim(),
+        version: document.getElementById('p_version').value.trim(),
+        author: document.getElementById('p_author').value.trim(),
+        publisher_id: document.getElementById('p_publisher_id').value.trim(),
+        min_core_version: document.getElementById('p_min_core').value.trim() || "3.9.0",
+        license: document.getElementById('p_license').value.trim() || "MIT",
+        description: document.getElementById('p_description').value.trim(),
+        homepage: document.getElementById('p_homepage').value.trim() || undefined,
+        icon: document.getElementById('p_icon').value.trim() || undefined,
+        download_url: document.getElementById('p_download').value.trim() || undefined,
+        tags: tags,
+        extensions: extensions,
+        binaries: {
+          win32: document.getElementById('p_bin_win').value.trim() || undefined,
+          linux: document.getElementById('p_bin_linux').value.trim() || undefined,
+          darwin: document.getElementById('p_bin_darwin').value.trim() || undefined
+        },
+        conversions: [
+          {
+            from: document.getElementById('p_from').value.trim(),
+            to: document.getElementById('p_to').value.trim(),
+            command: document.getElementById('p_command').value.trim()
+          }
+        ]
+      };
+
+      // Clean undefined keys
+      const cleanJson = JSON.parse(JSON.stringify(manifest));
+      const blob = new Blob([JSON.stringify(cleanJson, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'manifest.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('✨ manifest.json generated and downloaded!');
+    }
+
+    function updatePrompt() {
+      const tool = document.getElementById('ai_tool').value || '[WRITE TOOL NAME HERE]';
+      const repo = document.getElementById('ai_repo').value || '[GITHUB REPO HERE]';
+      const input = document.getElementById('ai_input').value || '[INPUT FORMATS]';
+      const output = document.getElementById('ai_output').value || '[OUTPUT FORMATS]';
+
+      const promptText = `You are an expert developer for the OpenROM Plugin Ecosystem.
+I need a strict, fully-compliant \`manifest.json\` for a retro ROM conversion tool plugin with the following details:
+
+- **Tool Name**: ${tool}
+- **GitHub Repository / Homepage**: ${repo}
+- **Input File Formats**: ${input}
+- **Output File Formats**: ${output}
+
+### Output Rules & Specification:
+1. Valid JSON matching OpenROM Store standard.
+2. Required fields:
+   - "id": string (lowercase kebab-case ID)
+   - "name": string
+   - "version": "1.0.0"
+   - "author": "Claus Valca"
+   - "publisher_id": "m5dev"
+   - "min_core_version": "3.9.0"
+   - "license": "MIT"
+   - "description": summary string
+   - "tags": list of string tags
+   - "extensions": list of extension strings (e.g. [".iso", ".chd"])
+   - "binaries": object with "win32", "linux", "darwin" binary filenames
+   - "conversions": list of conversion objects with "from", "to", and explicit "{bin}" command templates (e.g. "{bin} createcd -i {input} -o {output}")
+3. Strictly DO NOT include "is_verified" or "verified" fields in the manifest (self-verification is forbidden).
+
+Please generate ONLY the valid \`manifest.json\` code snippet inside JSON codeblocks.`;
+
+      document.getElementById('promptBox').innerText = promptText;
+    }
+
+    function copyPrompt() {
+      const promptText = document.getElementById('promptBox').innerText;
+      navigator.clipboard.writeText(promptText).then(() => {
+        showToast('📋 AI Prompt copied to clipboard!');
+      }).catch(err => {
+        showToast('❌ Copy failed, please manually select and copy text.');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updatePrompt();
+    });
+  </script>
+</body>
+</html>

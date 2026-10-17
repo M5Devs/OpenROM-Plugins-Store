@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publisher Profile - OpenROM Plugin Store</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">OR</div>
+        <div>OpenROM <span>Store</span></div>
+      </a>
+      <button class="mobile-menu-btn" onclick="toggleMobileNav()">☰</button>
+      <nav class="nav-links" id="navLinks">
+        <a href="index.html">Store</a>
+        <a href="maker.html">⚡ Plugin Maker</a>
+        <a href="https://github.com/M5Devs/OpenROM-Plugins-Store" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <a href="index.html" style="color: var(--accent-cyan); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1.5rem;">
+      ← Back to Store
+    </a>
+
+    <div id="publisherProfileContainer">
+      <div style="text-align: center; color: var(--text-muted); padding: 3rem 0;">Loading publisher profile...</div>
+    </div>
+
+    <h2 style="font-size: 1.5rem; color: var(--text-bright); margin-bottom: 1.25rem;">Maintained Plugins</h2>
+    <div id="publisherPluginGrid" class="plugin-grid">
+      <!-- Plugins list -->
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; OpenROM Project. Maintained by <a href="publisher.html?id=m5dev">Claus Valca (M5 Dev)</a> and open-source contributors.</p>
+  </footer>
+
+  <script>
+    function toggleMobileNav() {
+      document.getElementById('navLinks').classList.toggle('mobile-open');
+    }
+
+    async function loadPublisherProfile() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pubId = urlParams.get('id') || 'm5dev';
+
+      try {
+        const res = await fetch('api/catalog.json');
+        if (!res.ok) throw new Error('Failed to load catalog');
+        const data = await res.json();
+        const plugins = data.plugins || [];
+
+        // Find publisher details from catalog plugins
+        let publisher = null;
+        const pubPlugins = plugins.filter(p => {
+          const pPub = p.publisher || {};
+          if (pPub.id === pubId || p.publisher_id === pubId || p.author === pubId) {
+            if (!publisher && pPub.id) publisher = pPub;
+            return true;
+          }
+          return false;
+        });
+
+        if (!publisher && pubId === 'm5dev') {
+          publisher = {
+            id: 'm5dev',
+            name: 'Claus Valca (M5 Dev)',
+            github_username: 'ClausValcaTD',
+            github: 'https://github.com/M5Devs',
+            avatar_url: 'https://github.com/ClausValcaTD.png',
+            bio: 'Creator & Core Architect of OpenROM and Official Plugin Toolchains',
+            is_verified: true,
+            badge: 'Core Architect'
+          };
+        }
+
+        renderPublisherCard(publisher || { id: pubId, name: pubId, is_verified: false });
+        renderPublisherPlugins(pubPlugins);
+      } catch (err) {
+        console.warn('Catalog load error, using fallback:', err);
+        renderFallbackProfile(pubId);
+      }
+    }
+
+    function renderPublisherCard(pub) {
+      const container = document.getElementById('publisherProfileContainer');
+      const isVerified = pub.is_verified;
+      const verifiedBadge = isVerified ? '<span class="verified-badge" title="Verified Publisher">💙 ✓ Verified Publisher</span>' : '';
+      const badgeTag = pub.badge ? `<span class="badge-tag">${escapeHtml(pub.badge)}</span>` : '';
+      const avatarUrl = pub.avatar_url || 'https://github.com/github.png';
+      const githubUrl = pub.github || (pub.github_username ? `https://github.com/${pub.github_username}` : '#');
+
+      container.innerHTML = `
+        <div class="publisher-profile-card">
+          <div class="publisher-header">
+            <img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(pub.name)}" class="publisher-avatar" onerror="this.onerror=null; this.src='https://github.com/github.png';">
+            <div class="publisher-meta">
+              <h1>
+                ${escapeHtml(pub.name)}
+                ${badgeTag}
+              </h1>
+              <div style="margin-top: 0.3rem;">${verifiedBadge}</div>
+              <p class="publisher-bio">${escapeHtml(pub.bio || 'Plugin Maintainer and OpenROM Developer.')}</p>
+              <div class="publisher-links">
+                <a href="${escapeHtml(githubUrl)}" target="_blank" rel="noopener">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                  GitHub Profile (${escapeHtml(pub.github_username || pub.id)})
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPublisherPlugins(plugins) {
+      const grid = document.getElementById('publisherPluginGrid');
+      if (!plugins || plugins.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem 0; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">No plugins published yet.</div>';
+        return;
+      }
+
+      grid.innerHTML = plugins.map(plugin => {
+        const formats = (plugin.conversions || []).map(c => typeof c === 'string' ? c : `${c.from} ➔ ${c.to}`);
+        const displayTags = Array.from(new Set(formats.concat(plugin.tags || [])));
+
+        const iconMarkup = plugin.icon
+          ? `<img src="${escapeHtml(plugin.icon)}" alt="${escapeHtml(plugin.name)}" class="plugin-icon" onerror="this.onerror=null; this.outerHTML='<div class=\\'plugin-icon\\'>🎮</div>';">`
+          : `<div class="plugin-icon">🎮</div>`;
+
+        return `
+          <div class="plugin-card">
+            <div class="card-header">
+              ${iconMarkup}
+              <div class="card-title-group">
+                <a href="plugin.html?id=${encodeURIComponent(plugin.id)}" class="plugin-title">${escapeHtml(plugin.name)}</a>
+                <div><span class="plugin-version">v${escapeHtml(plugin.version)}</span></div>
+              </div>
+            </div>
+            <div class="plugin-description">${escapeHtml(plugin.description || '')}</div>
+
+            <div class="conversions-label">Supported Formats</div>
+            <div class="tag-list">
+              ${displayTags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+            </div>
+
+            <div class="card-actions">
+              <a href="openrom://plugin/install?id=${encodeURIComponent(plugin.id)}" class="btn btn-install">
+                ⚡ 1-Click Install
+              </a>
+              <a href="${escapeHtml(plugin.download_url)}" class="btn btn-download" download>
+                📥 .orplug
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderFallbackProfile(pubId) {
+      const fallbackPub = {
+        id: 'm5dev',
+        name: 'Claus Valca (M5 Dev)',
+        github_username: 'ClausValcaTD',
+        github: 'https://github.com/M5Devs',
+        avatar_url: 'https://github.com/ClausValcaTD.png',
+        bio: 'Creator & Core Architect of OpenROM and Official Plugin Toolchains',
+        is_verified: true,
+        badge: 'Core Architect'
+      };
+      const fallbackPlugins = [
+        {
+          id: 'nintendo-nkit',
+          name: 'Nintendo NKit & ZArchive Suite',
+          version: '3.1.0',
+          description: 'Standalone NKit suite for Nintendo GameCube, Wii, and Wii U ZArchive compression.',
+          tags: ['nintendo', 'nkit', 'zarchive', 'wua'],
+          download_url: 'https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v3.1.0/nintendo-nkit.orplug'
+        },
+        {
+          id: 'saturn-ssp',
+          name: 'Sega Saturn Patcher (SSP)',
+          version: '1.0.0',
+          description: 'Specialized Sega Saturn Patcher disc modification tool.',
+          tags: ['saturn', 'ssp', 'patcher', 'sega'],
+          download_url: 'https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/saturn-ssp.orplug'
+        },
+        {
+          id: 'xbox360-tools',
+          name: 'Xbox 360 ZAR & XISO Tools',
+          version: '1.0.0',
+          description: 'Extract XISO and compress to .zar for Xenia Edge.',
+          tags: ['xbox360', 'xiso', 'zar', 'xenia'],
+          download_url: 'https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/xbox360-tools.orplug'
+        }
+      ];
+
+      renderPublisherCard(fallbackPub);
+      renderPublisherPlugins(fallbackPlugins);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[m];
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPublisherProfile);
+  </script>
+</body>
+</html>

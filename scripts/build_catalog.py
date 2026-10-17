@@ -12,6 +12,8 @@ def load_verified_publishers() -> set:
                 data = json.load(f)
                 if isinstance(data, list):
                     return set(data)
+                elif isinstance(data, dict):
+                    return set(data.keys())
         except Exception as e:
             print(f"⚠️ Warning: Failed to load verified publishers from {v_file}: {e}")
     return set()
@@ -57,7 +59,7 @@ def build_catalog():
                 if k not in ("is_verified", "verified")
             }
 
-            author_id = clean_manifest.get("author") or clean_manifest.get("publisher_id", "")
+            author_id = clean_manifest.get("publisher_id") or clean_manifest.get("author", "")
 
             publisher_data = publishers.get(author_id, {
                 "id": author_id,

@@ -2,20 +2,35 @@
   "id": "xbox360-tools",
   "name": "Xbox 360 ZAR & XISO Tools",
   "version": "1.0.0",
-  "author": "m5dev",
+  "author": "Claus Valca",
+  "publisher_id": "m5dev",
+  "min_core_version": "3.9.0",
+  "license": "MIT",
   "description": "Extract XISO and compress to .zar for Xenia Edge.",
-  "conversions": [
-    "ZAR",
-    "XISO"
-  ],
+  "homepage": "https://github.com/M5Devs",
+  "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/xbox360.png",
+  "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/xbox360-tools.orplug",
   "tags": [
     "xbox360",
     "xiso",
     "zar",
     "xenia"
   ],
-  "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/xbox360.png",
-  "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/xbox360-tools.orplug",
-  "homepage": "https://github.com/M5Devs",
-  "license": "MIT"
+  "extensions": [
+    ".iso",
+    ".zar",
+    ".xiso"
+  ],
+  "binaries": {
+    "win32": "zar_tool.exe",
+    "linux": "zar_tool",
+    "darwin": "zar_tool"
+  },
+  "conversions": [
+    {
+      "from": "XISO",
+      "to": "ZAR",
+      "command": "{bin} compress --input {input} --output {output}"
+    }
+  ]
 }

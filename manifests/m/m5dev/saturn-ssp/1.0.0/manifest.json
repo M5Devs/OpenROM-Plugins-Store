@@ -2,19 +2,36 @@
   "id": "saturn-ssp",
   "name": "Sega Saturn Patcher (SSP)",
   "version": "1.0.0",
-  "author": "m5dev",
+  "author": "Claus Valca",
+  "publisher_id": "m5dev",
+  "min_core_version": "3.9.0",
+  "license": "MIT",
   "description": "Specialized Sega Saturn Patcher disc modification tool.",
-  "conversions": [
-    "SSP"
-  ],
+  "homepage": "https://github.com/M5Devs",
+  "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/saturn.png",
+  "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/saturn-ssp.orplug",
   "tags": [
     "saturn",
     "ssp",
     "patcher",
     "sega"
   ],
-  "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/saturn.png",
-  "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/saturn-ssp.orplug",
-  "homepage": "https://github.com/M5Devs",
-  "license": "MIT"
+  "extensions": [
+    ".bin",
+    ".cue",
+    ".iso",
+    ".ssp"
+  ],
+  "binaries": {
+    "win32": "ssp.exe",
+    "linux": "ssp",
+    "darwin": "ssp"
+  },
+  "conversions": [
+    {
+      "from": "ISO",
+      "to": "SSP",
+      "command": "{bin} -i {input} -o {output}"
+    }
+  ]
 }
