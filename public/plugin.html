@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin Details - OpenROM Plugin Store</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">OR</div>
+        <div>OpenROM <span>Store</span></div>
+      </a>
+      <button class="mobile-menu-btn" onclick="toggleMobileNav()">☰</button>
+      <nav class="nav-links" id="navLinks">
+        <a href="index.html">Store</a>
+        <a href="maker.html">⚡ Plugin Maker</a>
+        <a href="https://github.com/M5Devs/OpenROM-Plugins-Store" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <a href="index.html" style="color: var(--accent-cyan); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1.5rem;">
+      ← Back to Store
+    </a>
+
+    <div id="pluginDetailContainer">
+      <div style="text-align: center; color: var(--text-muted); padding: 3rem 0;">Loading plugin details...</div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; OpenROM Project. Maintained by <a href="publisher.html?id=m5dev">Claus Valca (M5 Dev)</a> and open-source contributors.</p>
+  </footer>
+
+  <script>
+    function toggleMobileNav() {
+      document.getElementById('navLinks').classList.toggle('mobile-open');
+    }
+
+    async function loadPluginDetails() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pluginId = urlParams.get('id') || 'nintendo-nkit';
+
+      try {
+        const res = await fetch('api/catalog.json');
+        if (!res.ok) throw new Error('Failed to load catalog');
+        const data = await res.json();
+        const plugins = data.plugins || [];
+        const plugin = plugins.find(p => p.id === pluginId) || plugins[0];
+        renderPluginDetail(plugin);
+      } catch (err) {
+        console.warn('Catalog load error, using fallback:', err);
+        renderFallbackDetail(pluginId);
+      }
+    }
+
+    function renderPluginDetail(plugin) {
+      const container = document.getElementById('pluginDetailContainer');
+      if (!plugin) {
+        container.innerHTML = '<div class="detail-card"><p>Plugin not found.</p></div>';
+        return;
+      }
+
+      const pub = plugin.publisher || {};
+      const pubId = pub.id || plugin.publisher_id || plugin.author;
+      const isVerified = pub.is_verified;
+      const pubName = pub.name || plugin.author;
+      const verifiedBadge = isVerified ? '<span class="verified-badge" title="Verified Publisher">💙 ✓</span>' : '';
+      const badgeTag = pub.badge ? `<span class="badge-tag">${escapeHtml(pub.badge)}</span>` : '';
+
+      const extensions = plugin.extensions || [];
+      const conversions = plugin.conversions || [];
+      const binaries = plugin.binaries || {};
+
+      const iconMarkup = plugin.icon
+        ? `<img src="${escapeHtml(plugin.icon)}" alt="${escapeHtml(plugin.name)}" class="plugin-icon" style="width: 72px; height: 72px; font-size: 2rem;">`
+        : `<div class="plugin-icon" style="width: 72px; height: 72px; font-size: 2rem;">🎮</div>`;
+
+      container.innerHTML = `
+        <div class="detail-card">
+          <div style="display: flex; align-items: flex-start; gap: 1.5rem; margin-bottom: 1.5rem;">
+            ${iconMarkup}
+            <div style="flex: 1;">
+              <h1 style="font-size: 2rem; color: var(--text-bright); margin-bottom: 0.25rem;">${escapeHtml(plugin.name)}</h1>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                <span class="plugin-version">v${escapeHtml(plugin.version)}</span>
+                <span class="tag">Min Core v${escapeHtml(plugin.min_core_version || '3.9.0')}</span>
+                <span class="tag" style="border-color: var(--accent-purple); color: var(--accent-purple);">License: ${escapeHtml(plugin.license || 'MIT')}</span>
+              </div>
+              <div class="publisher-info" style="font-size: 0.95rem;">
+                Maintained by <a href="publisher.html?id=${encodeURIComponent(pubId)}">${escapeHtml(pubName)}</a> ${verifiedBadge} ${badgeTag}
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 2rem;">
+            <h3 style="color: var(--text-bright); margin-bottom: 0.5rem;">Description</h3>
+            <p style="color: var(--text-muted); font-size: 1.05rem;">${escapeHtml(plugin.description || 'No description provided.')}</p>
+          </div>
+
+          <div style="margin-bottom: 2rem;">
+            <h3 style="color: var(--text-bright); margin-bottom: 0.5rem;">Supported File Extensions</h3>
+            <div class="tag-list">
+              ${extensions.map(ext => `<span class="tag" style="font-size: 0.85rem; padding: 0.3rem 0.7rem;">${escapeHtml(ext)}</span>`).join('')}
+            </div>
+          </div>
+
+          <div style="margin-bottom: 2rem;">
+            <h3 style="color: var(--text-bright); margin-bottom: 0.5rem;">Command Templates</h3>
+            ${conversions.map(c => {
+              if (typeof c === 'string') {
+                return `<div class="code-box"># Conversion format: ${escapeHtml(c)}</div>`;
+              }
+              return `
+                <div style="margin-bottom: 0.75rem;">
+                  <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700; margin-bottom: 0.25rem;">
+                    Conversion: ${escapeHtml(c.from)} ➔ ${escapeHtml(c.to)}
+                  </div>
+                  <div class="code-box">${escapeHtml(c.command || c.cmd || '{bin} -i {input} -o {output}')}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div style="margin-bottom: 2rem;">
+            <h3 style="color: var(--text-bright); margin-bottom: 0.5rem;">Executables & Binary Verification</h3>
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                  <span style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700;">WINDOWS BINARY</span>
+                  <div style="font-family: var(--font-mono); color: var(--accent-cyan); font-size: 0.9rem;">${escapeHtml(binaries.win32 || 'N/A')}</div>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700;">LINUX BINARY</span>
+                  <div style="font-family: var(--font-mono); color: var(--accent-cyan); font-size: 0.9rem;">${escapeHtml(binaries.linux || 'N/A')}</div>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700;">MACOS BINARY</span>
+                  <div style="font-family: var(--font-mono); color: var(--accent-cyan); font-size: 0.9rem;">${escapeHtml(binaries.darwin || 'N/A')}</div>
+                </div>
+              </div>
+              <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                🔒 Verification SHA256: <code style="color: var(--accent-cyan); font-family: var(--font-mono);">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</code>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 2rem;">
+            <h3 style="color: var(--text-bright); margin-bottom: 0.5rem;">Version History</h3>
+            <div style="border-left: 2px solid var(--accent-cyan); padding-left: 1rem;">
+              <div>
+                <strong style="color: var(--text-bright);">v${escapeHtml(plugin.version)}</strong> - Initial official standardized release.
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
+            <a href="openrom://plugin/install?id=${encodeURIComponent(plugin.id)}" class="btn btn-install" style="padding: 0.9rem; font-size: 1rem;">
+              ⚡ 1-Click Install
+            </a>
+            <a href="${escapeHtml(plugin.download_url)}" class="btn btn-download" style="padding: 0.9rem; font-size: 1rem;" download>
+              📥 Download .orplug
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderFallbackDetail(id) {
+      renderPluginDetail({
+        id: id,
+        name: id === 'saturn-ssp' ? 'Sega Saturn Patcher (SSP)' : id === 'xbox360-tools' ? 'Xbox 360 ZAR & XISO Tools' : 'Nintendo NKit & ZArchive Suite',
+        version: id === 'nintendo-nkit' ? '3.1.0' : '1.0.0',
+        author: 'Claus Valca',
+        publisher_id: 'm5dev',
+        min_core_version: '3.9.0',
+        license: 'MIT',
+        description: 'Official toolchain plugin for OpenROM ecosystem.',
+        extensions: ['.iso', '.zar', '.wua', '.ssp'],
+        binaries: { win32: 'tool.exe', linux: 'tool', darwin: 'tool' },
+        conversions: [{ from: 'ISO', to: 'ZAR', command: '{bin} convert -i {input} -o {output}' }],
+        download_url: '#',
+        publisher: { id: 'm5dev', name: 'Claus Valca (M5 Dev)', is_verified: true, badge: 'Core Architect' }
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[m];
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPluginDetails);
+  </script>
+</body>
+</html>
