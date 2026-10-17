@@ -47,7 +47,7 @@ def validate_manifest(file_path: Path) -> bool:
             print(f"❌ Error in {file_path}: Field 'id' must not be empty.")
             is_valid = False
 
-    author_id = data.get("author")
+    author_id = data.get("publisher_id") or data.get("author")
     if author_id and isinstance(author_id, str):
         publisher_path = Path("publishers") / f"{author_id}.json"
         if not publisher_path.exists():
