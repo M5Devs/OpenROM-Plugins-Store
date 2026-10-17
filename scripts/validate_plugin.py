@@ -26,6 +26,16 @@ def validate_manifest(file_path: Path) -> bool:
 
     is_valid = True
 
+    # Security check 1: Reject any community manifest that attempts to declare is_verified or verified
+    for verified_key in ("is_verified", "verified"):
+        if verified_key in data:
+            if data[verified_key] is True or str(data[verified_key]).lower() == "true":
+                print(
+                    f"❌ Security Violation in {file_path}: Manifest attempts to declare "
+                    f"'{verified_key}': {data[verified_key]}. Self-verification is strictly forbidden."
+                )
+                is_valid = False
+
     for field in REQUIRED_FIELDS:
         if field not in data or data[field] is None:
             print(f"❌ Error in {file_path}: Missing mandatory field '{field}'.")
@@ -37,12 +47,28 @@ def validate_manifest(file_path: Path) -> bool:
             print(f"❌ Error in {file_path}: Field 'id' must not be empty.")
             is_valid = False
 
-    if "author" in data and isinstance(data["author"], str):
-        author_id = data["author"]
+    author_id = data.get("author")
+    if author_id and isinstance(author_id, str):
         publisher_path = Path("publishers") / f"{author_id}.json"
         if not publisher_path.exists():
             print(f"❌ Error in {file_path}: Author/Publisher '{author_id}' record not found at {publisher_path}.")
             is_valid = False
+
+        # Security check 2: Ensure the manifest's publisher_id/author matches the directory path (manifests/<letter>/<publisher_id>/)
+        # Expected relative path format: manifests/<letter>/<publisher_id>/<plugin_id>/<version>/manifest.json
+        parts = file_path.parts
+        # Looking for 'manifests' in path parts
+        if "manifests" in parts:
+            idx = parts.index("manifests")
+            # Expected structure after 'manifests': letter (idx+1), publisher_id (idx+2)
+            if len(parts) > idx + 2:
+                expected_publisher = parts[idx + 2]
+                if author_id != expected_publisher:
+                    print(
+                        f"❌ Security Violation in {file_path}: Publisher ID in manifest ('{author_id}') "
+                        f"does not match directory path publisher ID ('{expected_publisher}')."
+                    )
+                    is_valid = False
 
     if "conversions" in data:
         if not isinstance(data["conversions"], list) or len(data["conversions"]) == 0:
