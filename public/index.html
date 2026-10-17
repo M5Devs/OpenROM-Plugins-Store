@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenROM Plugin Store</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="#" class="logo">
+        <div class="logo-icon">OR</div>
+        <div>OpenROM <span>Store</span></div>
+      </a>
+      <nav class="nav-links">
+        <a href="https://github.com/M5Devs/OpenROM-Plugins-Store" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          GitHub Repo
+        </a>
+        <a href="api/catalog.json" target="_blank">API Catalog</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-content">
+      <h1>OpenROM Plugin Store</h1>
+      <p>Discover, install, and compress retro ROM archives effortlessly. Community-driven conversion extensions for OpenROM ecosystem.</p>
+    </div>
+  </section>
+
+  <div class="controls-container">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search plugins, formats (ZAR, WUA, SSP...), or publishers..." oninput="filterPlugins()">
+    </div>
+  </div>
+
+  <main>
+    <div id="pluginGrid" class="plugin-grid">
+      <!-- Dynamically populated or static fallback -->
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; OpenROM Project. Maintained by <a href="https://github.com/M5Devs" target="_blank">M5 Devs</a> and contributors.</p>
+  </footer>
+
+  <script>
+    let allPlugins = [];
+
+    async function loadCatalog() {
+      try {
+        const res = await fetch('api/catalog.json');
+        if (!res.ok) throw new Error('Failed to load catalog');
+        const data = await res.json();
+        allPlugins = data.plugins || [];
+        renderPlugins(allPlugins);
+      } catch (err) {
+        console.warn('Catalog load error, using static fallback:', err);
+        loadFallback();
+      }
+    }
+
+    function renderPlugins(plugins) {
+      const grid = document.getElementById('pluginGrid');
+      if (!plugins || plugins.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem 0;">No plugins matching search query.</div>';
+        return;
+      }
+
+      grid.innerHTML = plugins.map(plugin => {
+        const pub = plugin.publisher || {};
+        const isVerified = pub.is_verified;
+        const pubName = pub.name || plugin.author;
+        const verifiedBadge = isVerified ? '<span class="verified-badge" title="Verified Publisher">💙 ✓</span>' : '';
+        const badgeTag = pub.badge ? `<span class="badge-tag">${escapeHtml(pub.badge)}</span>` : '';
+        const tags = (plugin.conversions || []).concat(plugin.tags || []);
+        const uniqueTags = Array.from(new Set(tags));
+
+        const iconMarkup = plugin.icon
+          ? `<img src="${escapeHtml(plugin.icon)}" alt="${escapeHtml(plugin.name)}" class="plugin-icon" onerror="this.onerror=null; this.outerHTML='<div class=\\'plugin-icon\\'>🎮</div>';">`
+          : `<div class="plugin-icon">🎮</div>`;
+
+        return `
+          <div class="plugin-card">
+            <div class="card-header">
+              ${iconMarkup}
+              <div class="card-title-group">
+                <div class="plugin-title">${escapeHtml(plugin.name)}</div>
+                <div class="plugin-version">v${escapeHtml(plugin.version)}</div>
+                <div class="publisher-info">
+                  by ${escapeHtml(pubName)} ${verifiedBadge} ${badgeTag}
+                </div>
+              </div>
+            </div>
+            <div class="plugin-description">${escapeHtml(plugin.description || '')}</div>
+
+            <div class="conversions-label">Supported Formats</div>
+            <div class="tag-list">
+              ${uniqueTags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+            </div>
+
+            <div class="card-actions">
+              <a href="openrom://plugin/install?id=${encodeURIComponent(plugin.id)}" class="btn btn-install">
+                ⚡ 1-Click Install
+              </a>
+              <a href="${escapeHtml(plugin.download_url)}" class="btn btn-download" download>
+                📦 .orplug
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterPlugins() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!query) {
+        renderPlugins(allPlugins);
+        return;
+      }
+
+      const filtered = allPlugins.filter(p => {
+        const pub = p.publisher || {};
+        const searchable = [
+          p.name,
+          p.id,
+          p.description,
+          p.author,
+          pub.name,
+          ...(p.conversions || []),
+          ...(p.tags || [])
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        return searchable.includes(query);
+      });
+
+      renderPlugins(filtered);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[m];
+      });
+    }
+
+    function loadFallback() {
+      allPlugins = [
+        {
+          id: "xbox360-tools",
+          name: "Xbox 360 ZAR & XISO Tools",
+          version: "1.0.0",
+          author: "m5dev",
+          description: "Extract XISO and compress to .zar for Xenia Edge.",
+          conversions: ["ZAR", "XISO"],
+          tags: ["xbox360", "xiso", "zar", "xenia"],
+          icon: "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/xbox360.png",
+          download_url: "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/xbox360-tools.orplug",
+          publisher: { id: "m5dev", name: "Yusuf Ezz (M5 Dev)", is_verified: true, badge: "Core Architect" }
+        },
+        {
+          id: "wiiu-nkit",
+          name: "Wii U NKit & ZArchive Suite",
+          version: "3.1.0",
+          author: "m5dev",
+          description: "Standalone NKit v3.1.0 suite for Wii U ZArchive compression.",
+          conversions: ["WUA", "WUD", "WUX"],
+          tags: ["wiiu", "nkit", "zarchive", "wua"],
+          icon: "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/wiiu.png",
+          download_url: "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v3.1.0/wiiu-nkit.orplug",
+          publisher: { id: "m5dev", name: "Yusuf Ezz (M5 Dev)", is_verified: true, badge: "Core Architect" }
+        },
+        {
+          id: "saturn-ssp",
+          name: "Sega Saturn Patcher (SSP)",
+          version: "1.0.0",
+          author: "m5dev",
+          description: "Specialized Sega Saturn Patcher disc modification tool.",
+          conversions: ["SSP"],
+          tags: ["saturn", "ssp", "patcher", "sega"],
+          icon: "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/saturn.png",
+          download_url: "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/saturn-ssp.orplug",
+          publisher: { id: "m5dev", name: "Yusuf Ezz (M5 Dev)", is_verified: true, badge: "Core Architect" }
+        }
+      ];
+      renderPlugins(allPlugins);
+    }
+
+    document.addEventListener('DOMContentLoaded', loadCatalog);
+  </script>
+</body>
+</html>

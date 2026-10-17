@@ -1,0 +1,91 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-10-17T11:54:08.867684+00:00",
+  "total_plugins": 3,
+  "plugins": [
+    {
+      "id": "saturn-ssp",
+      "name": "Sega Saturn Patcher (SSP)",
+      "version": "1.0.0",
+      "author": "m5dev",
+      "description": "Specialized Sega Saturn Patcher disc modification tool.",
+      "conversions": [
+        "SSP"
+      ],
+      "tags": [
+        "saturn",
+        "ssp",
+        "patcher",
+        "sega"
+      ],
+      "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/saturn.png",
+      "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/saturn-ssp.orplug",
+      "homepage": "https://github.com/M5Devs",
+      "license": "MIT",
+      "publisher": {
+        "id": "m5dev",
+        "name": "Yusuf Ezz (M5 Dev)",
+        "github": "https://github.com/M5Devs",
+        "is_verified": true,
+        "badge": "Core Architect"
+      }
+    },
+    {
+      "id": "wiiu-nkit",
+      "name": "Wii U NKit & ZArchive Suite",
+      "version": "3.1.0",
+      "author": "m5dev",
+      "description": "Standalone NKit v3.1.0 suite for Wii U ZArchive compression.",
+      "conversions": [
+        "WUA",
+        "WUD",
+        "WUX"
+      ],
+      "tags": [
+        "wiiu",
+        "nkit",
+        "zarchive",
+        "wua"
+      ],
+      "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/wiiu.png",
+      "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v3.1.0/wiiu-nkit.orplug",
+      "homepage": "https://github.com/M5Devs",
+      "license": "GPL-3.0",
+      "publisher": {
+        "id": "m5dev",
+        "name": "Yusuf Ezz (M5 Dev)",
+        "github": "https://github.com/M5Devs",
+        "is_verified": true,
+        "badge": "Core Architect"
+      }
+    },
+    {
+      "id": "xbox360-tools",
+      "name": "Xbox 360 ZAR & XISO Tools",
+      "version": "1.0.0",
+      "author": "m5dev",
+      "description": "Extract XISO and compress to .zar for Xenia Edge.",
+      "conversions": [
+        "ZAR",
+        "XISO"
+      ],
+      "tags": [
+        "xbox360",
+        "xiso",
+        "zar",
+        "xenia"
+      ],
+      "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/xbox360.png",
+      "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v1.0.0/xbox360-tools.orplug",
+      "homepage": "https://github.com/M5Devs",
+      "license": "MIT",
+      "publisher": {
+        "id": "m5dev",
+        "name": "Yusuf Ezz (M5 Dev)",
+        "github": "https://github.com/M5Devs",
+        "is_verified": true,
+        "badge": "Core Architect"
+      }
+    }
+  ]
+}

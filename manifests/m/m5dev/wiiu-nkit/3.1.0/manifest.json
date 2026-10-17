@@ -1,0 +1,22 @@
+{
+  "id": "wiiu-nkit",
+  "name": "Wii U NKit & ZArchive Suite",
+  "version": "3.1.0",
+  "author": "m5dev",
+  "description": "Standalone NKit v3.1.0 suite for Wii U ZArchive compression.",
+  "conversions": [
+    "WUA",
+    "WUD",
+    "WUX"
+  ],
+  "tags": [
+    "wiiu",
+    "nkit",
+    "zarchive",
+    "wua"
+  ],
+  "icon": "https://raw.githubusercontent.com/M5Devs/OpenROM-Plugins-Store/main/packages/wiiu.png",
+  "download_url": "https://github.com/M5Devs/OpenROM-Plugins-Store/releases/download/v3.1.0/wiiu-nkit.orplug",
+  "homepage": "https://github.com/M5Devs",
+  "license": "GPL-3.0"
+}
