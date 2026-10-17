@@ -17,7 +17,10 @@
       <nav class="nav-links" id="navLinks">
         <a href="index.html">Store</a>
         <a href="maker.html" class="active">⚡ Plugin Maker</a>
-        <a href="https://github.com/M5Devs/OpenROM-Plugins-Store" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/M5Devs/OpenROM-Plugins-Store" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          GitHub
+        </a>
       </nav>
     </div>
   </header>
@@ -28,7 +31,7 @@
         ⚡ OpenROM Plugin Maker & AI Prompt Wizard
       </h1>
       <p style="color: var(--text-muted); max-width: 650px; margin: 0 auto;">
-        Create standardized manifest files visually or generate optimized prompts for ChatGPT / Claude to write manifests for you.
+        Create standardized manifest files visually or generate optimized prompts for AI assistants (ChatGPT, Claude) to write manifests for you.
       </p>
     </div>
 
@@ -94,7 +97,7 @@
           </div>
 
           <h3 style="color: var(--text-bright); margin-top: 2rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
-            2. File Extensions & Command Template
+            2. File Formats & Command Template String
           </h3>
 
           <div class="form-group">
@@ -114,12 +117,12 @@
           </div>
 
           <div class="form-group">
-            <label>Command Template <span>*</span></label>
+            <label>Command Template String <span>*</span> <small style="color: var(--accent-color);">(Use {bin}, {in} / {input}, {out} / {output} placeholders)</small></label>
             <input type="text" id="p_command" class="form-control" value="{bin} createcd -i {input} -o {output}" required>
           </div>
 
           <h3 style="color: var(--text-bright); margin-top: 2rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
-            3. Executables & Distribution URLs
+            3. Executables & Distribution Info
           </h3>
 
           <div class="form-row">
@@ -139,24 +142,29 @@
               <input type="text" id="p_bin_darwin" class="form-control" value="chdman">
             </div>
             <div class="form-group">
-              <label>Homepage URL</label>
-              <input type="url" id="p_homepage" class="form-control" value="https://github.com/M5Devs">
+              <label>Package Binary SHA256 (Optional)</label>
+              <input type="text" id="p_sha256" class="form-control" placeholder="Optional 64-char hex SHA256 hash">
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Icon Image URL</label>
-              <input type="url" id="p_icon" class="form-control" placeholder="https://example.com/icon.png">
+              <label>Homepage URL</label>
+              <input type="url" id="p_homepage" class="form-control" value="https://github.com/M5Devs">
             </div>
             <div class="form-group">
-              <label>Download .orplug Package URL</label>
-              <input type="url" id="p_download" class="form-control" placeholder="https://github.com/.../plugin.orplug">
+              <label>Icon Image URL</label>
+              <input type="url" id="p_icon" class="form-control" placeholder="https://raw.githubusercontent.com/.../icon.png">
             </div>
           </div>
 
+          <div class="form-group">
+            <label>Download .orplug Package URL</label>
+            <input type="url" id="p_download" class="form-control" placeholder="https://github.com/.../plugin.orplug">
+          </div>
+
           <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; margin-top: 1.5rem;">
-            💾 Generate & Download manifest.json
+            💾 Generate manifest.json
           </button>
         </form>
       </div>
@@ -167,44 +175,49 @@
       <div class="detail-card">
         <h3 style="color: var(--text-bright); margin-bottom: 1rem;">Fill-in-the-Blank Placeholders</h3>
         <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-          Fill out the details below and click <strong>Copy AI Prompt</strong> to paste into ChatGPT or Claude.
+          Fill out the details below to generate a pre-formatted AI prompt with placeholders for ChatGPT or Claude.
         </p>
 
         <div class="form-row">
           <div class="form-group">
-            <label>[WRITE TOOL NAME HERE]</label>
+            <label>[TOOL_NAME]</label>
             <input type="text" id="ai_tool" class="form-control" value="CHDMAN PS2 Tool" oninput="updatePrompt()">
           </div>
           <div class="form-group">
-            <label>[GITHUB REPO HERE]</label>
+            <label>[GITHUB_REPO_URL]</label>
             <input type="text" id="ai_repo" class="form-control" value="https://github.com/mamedev/mame" oninput="updatePrompt()">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>[INPUT FORMATS]</label>
-            <input type="text" id="ai_input" class="form-control" value="ISO, BIN/CUE, GDI" oninput="updatePrompt()">
+            <label>[INPUT_EXTENSIONS]</label>
+            <input type="text" id="ai_input" class="form-control" value=".iso, .bin, .cue, .gdi" oninput="updatePrompt()">
           </div>
           <div class="form-group">
-            <label>[OUTPUT FORMATS]</label>
+            <label>[OUTPUT_FORMATS]</label>
             <input type="text" id="ai_output" class="form-control" value="CHD (Compressed Hunks of Data)" oninput="updatePrompt()">
           </div>
         </div>
 
-        <h3 style="color: var(--text-bright); margin-top: 1.5rem; margin-bottom: 0.5rem;">Engineered Prompt Preview</h3>
-        <div id="promptBox" class="code-box" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 400px; overflow-y: auto;">
+        <div class="form-group">
+          <label>[CLI_COMMAND_SYNTAX]</label>
+          <input type="text" id="ai_cmd" class="form-control" value="{bin} createcd -i {input} -o {output}" oninput="updatePrompt()">
+        </div>
+
+        <h3 style="color: var(--text-bright); margin-top: 1.5rem; margin-bottom: 0.5rem;">AI Master Prompt Preview</h3>
+        <div id="promptBox" class="code-box" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem;">
           <!-- Live prompt -->
         </div>
 
         <button class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;" onclick="copyPrompt()">
-          📋 Copy AI Prompt
+          📋 Copy AI Master Prompt
         </button>
       </div>
     </div>
   </div>
 
-  <div id="toast" class="toast">📋 AI Prompt copied to clipboard!</div>
+  <div id="toast" class="toast">📋 AI Master Prompt copied to clipboard!</div>
 
   <footer>
     <p>&copy; OpenROM Project. Maintained by <a href="publisher.html?id=m5dev">Claus Valca (M5 Dev)</a> and open-source contributors.</p>
@@ -231,6 +244,8 @@
       const extRaw = document.getElementById('p_extensions').value;
       const extensions = extRaw ? extRaw.split(',').map(e => e.trim().startsWith('.') ? e.trim() : '.' + e.trim()).filter(Boolean) : [];
 
+      const sha256Val = document.getElementById('p_sha256').value.trim();
+
       const manifest = {
         id: document.getElementById('p_id').value.trim(),
         name: document.getElementById('p_name').value.trim(),
@@ -243,6 +258,7 @@
         homepage: document.getElementById('p_homepage').value.trim() || undefined,
         icon: document.getElementById('p_icon').value.trim() || undefined,
         download_url: document.getElementById('p_download').value.trim() || undefined,
+        sha256: sha256Val || undefined,
         tags: tags,
         extensions: extensions,
         binaries: {
@@ -259,7 +275,6 @@
         ]
       };
 
-      // Clean undefined keys
       const cleanJson = JSON.parse(JSON.stringify(manifest));
       const blob = new Blob([JSON.stringify(cleanJson, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -276,18 +291,20 @@
     }
 
     function updatePrompt() {
-      const tool = document.getElementById('ai_tool').value || '[WRITE TOOL NAME HERE]';
-      const repo = document.getElementById('ai_repo').value || '[GITHUB REPO HERE]';
-      const input = document.getElementById('ai_input').value || '[INPUT FORMATS]';
-      const output = document.getElementById('ai_output').value || '[OUTPUT FORMATS]';
+      const tool = document.getElementById('ai_tool').value || '[TOOL_NAME]';
+      const repo = document.getElementById('ai_repo').value || '[GITHUB_REPO_URL]';
+      const input = document.getElementById('ai_input').value || '[INPUT_EXTENSIONS]';
+      const output = document.getElementById('ai_output').value || '[OUTPUT_FORMATS]';
+      const cmd = document.getElementById('ai_cmd').value || '[CLI_COMMAND_SYNTAX]';
 
       const promptText = `You are an expert developer for the OpenROM Plugin Ecosystem.
 I need a strict, fully-compliant \`manifest.json\` for a retro ROM conversion tool plugin with the following details:
 
-- **Tool Name**: ${tool}
-- **GitHub Repository / Homepage**: ${repo}
-- **Input File Formats**: ${input}
-- **Output File Formats**: ${output}
+- **[TOOL_NAME]**: ${tool}
+- **[GITHUB_REPO_URL]**: ${repo}
+- **[INPUT_EXTENSIONS]**: ${input}
+- **[OUTPUT_FORMATS]**: ${output}
+- **[CLI_COMMAND_SYNTAX]**: ${cmd}
 
 ### Output Rules & Specification:
 1. Valid JSON matching OpenROM Store standard.
@@ -295,15 +312,15 @@ I need a strict, fully-compliant \`manifest.json\` for a retro ROM conversion to
    - "id": string (lowercase kebab-case ID)
    - "name": string
    - "version": "1.0.0"
-   - "author": "Claus Valca"
-   - "publisher_id": "m5dev"
+   - "author": string
+   - "publisher_id": string
    - "min_core_version": "3.9.0"
    - "license": "MIT"
    - "description": summary string
    - "tags": list of string tags
    - "extensions": list of extension strings (e.g. [".iso", ".chd"])
    - "binaries": object with "win32", "linux", "darwin" binary filenames
-   - "conversions": list of conversion objects with "from", "to", and explicit "{bin}" command templates (e.g. "{bin} createcd -i {input} -o {output}")
+   - "conversions": list of conversion objects with "from", "to", and explicit "{bin}" command templates (e.g. "${cmd}")
 3. Strictly DO NOT include "is_verified" or "verified" fields in the manifest (self-verification is forbidden).
 
 Please generate ONLY the valid \`manifest.json\` code snippet inside JSON codeblocks.`;
@@ -313,11 +330,30 @@ Please generate ONLY the valid \`manifest.json\` code snippet inside JSON codebl
 
     function copyPrompt() {
       const promptText = document.getElementById('promptBox').innerText;
-      navigator.clipboard.writeText(promptText).then(() => {
-        showToast('📋 AI Prompt copied to clipboard!');
-      }).catch(err => {
-        showToast('❌ Copy failed, please manually select and copy text.');
-      });
+
+      const copySuccess = () => showToast('📋 AI Master Prompt copied to clipboard!');
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(promptText).then(copySuccess).catch(() => fallbackCopy(promptText));
+      } else {
+        fallbackCopy(promptText);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('📋 AI Master Prompt copied to clipboard!');
+      } catch (err) {
+        showToast('📋 Prompt selected! Press Ctrl+C to copy.');
+      }
+      document.body.removeChild(textarea);
     }
 
     function showToast(msg) {
