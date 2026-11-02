@@ -109,7 +109,7 @@
            class="hidden h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100 sm:flex">
           <i data-lucide="github" class="h-4 w-4"></i> GitHub
         </a>
-        <a href="https://discord.gg/openrom" target="_blank" rel="noopener"
+        <a href="https://discord.gg/FYEjpcFYXc" target="_blank" rel="noopener"
            class="hidden h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100 md:flex">
           <i data-lucide="message-circle" class="h-4 w-4"></i> Discord
         </a>
@@ -351,7 +351,7 @@
       <p>© <span x-text="new Date().getFullYear()"></span> OpenROM Project — retro-gaming preservation. Not affiliated with Nintendo, Sony, Sega or Microsoft.</p>
       <div class="flex items-center gap-4">
         <a href="https://github.com/M5Devs/OpenROM-Plugins-Store" target="_blank" rel="noopener" class="transition hover:text-zinc-300">Repository</a>
-        <a href="https://discord.gg/openrom" target="_blank" rel="noopener" class="transition hover:text-zinc-300">Discord</a>
+        <a href="https://discord.gg/FYEjpcFYXc" target="_blank" rel="noopener" class="transition hover:text-zinc-300">Discord</a>
         <span class="flex items-center gap-1"><i data-lucide="cloud" class="h-3 w-3"></i> Cloudflare Pages</span>
       </div>
     </div>
@@ -589,12 +589,26 @@
         }
         this.loading = false;
         this.$nextTick(() => window.lucide && lucide.createIcons());
+        this.applyDeepLink();
+        window.addEventListener('popstate', () => this.applyDeepLink());
         window.addEventListener('keydown', (ev) => {
           if (ev.key === '/' && document.activeElement.tagName !== 'INPUT') {
             ev.preventDefault();
             document.querySelector('input[type=search]').focus();
           }
         });
+      },
+
+      // Shareable links: ?q=<search> prefilters the catalog, ?ext=<id> opens a drawer.
+      applyDeepLink() {
+        const params = new URLSearchParams(location.search);
+        const q = params.get('q');
+        if (q) this.query = q;
+        const ext = params.get('ext');
+        if (ext) {
+          const plugin = this.plugins.find((p) => p.id === ext);
+          if (plugin) this.openDetail(plugin);
+        }
       },
 
       get publishers() {
@@ -656,8 +670,15 @@
       togglePublisher(id) { const i = this.publishers_active.indexOf(id); i === -1 ? this.publishers_active.push(id) : this.publishers_active.splice(i, 1); },
       resetFilters() { this.query = ''; this.category = 'All'; this.platforms = []; this.publishers_active = []; this.sort = 'relevance'; },
 
-      openDetail(plugin) { this.detail = plugin; this.tab = 'overview'; this.$nextTick(() => window.lucide && lucide.createIcons()); },
-      closeDetail() { this.detail = null; },
+      openDetail(plugin) { this.detail = plugin; this.tab = 'overview'; this.syncUrl('ext', plugin.id); this.$nextTick(() => window.lucide && lucide.createIcons()); },
+      closeDetail() { this.detail = null; this.syncUrl('ext', null); },
+
+      // Keep the address bar in sync so drawer links can be shared or bookmarked.
+      syncUrl(key, value) {
+        const url = new URL(location.href);
+        if (value) url.searchParams.set(key, value); else url.searchParams.delete(key);
+        history.replaceState(null, '', url);
+      },
 
       installCmd(p) { return 'openrom-core --install-plugin ' + p.id; },
       routeFrom(r) { return r.split('->')[0].trim(); },
