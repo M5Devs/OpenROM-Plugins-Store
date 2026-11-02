@@ -150,5 +150,5 @@ openrom-core --install-plugin <plugin-id>
 
 ## Questions
 
-Open a [Discord](https://discord.gg/openrom) thread or a draft pull request and a
+Open a [Discord](https://discord.gg/FYEjpcFYXc) thread or a draft pull request and a
 maintainer will help you get it over the line.
