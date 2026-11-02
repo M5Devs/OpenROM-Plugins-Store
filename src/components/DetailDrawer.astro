@@ -1,0 +1,213 @@
+---
+import Icon from './Icon.astro';
+import { PLATFORM_ICONS, SITE } from '../lib/site';
+import type { Plugin } from '../lib/db';
+import { renderMarkdown } from '../lib/markdown';
+
+interface Props {
+  plugins: Plugin[];
+}
+
+const { plugins } = Astro.props;
+
+const cliFor = (id: string) => `openrom-core --install-plugin ${id}`;
+
+function manifestFor(plugin: Plugin) {
+  return {
+    id: plugin.id,
+    name: plugin.name,
+    version: plugin.version,
+    min_core_version: plugin.minCoreVersion,
+    publisher: { name: plugin.publisherName, verified: plugin.publisherVerified },
+    category: plugin.category,
+    description: plugin.description,
+    routes: plugin.routes,
+    platforms: plugin.platforms,
+    download_url: plugin.downloadUrl,
+    sha256: plugin.sha256 || null,
+    icon: plugin.icon,
+    downloads: plugin.downloads,
+    created_at: plugin.createdAt,
+  };
+}
+---
+
+<!-- Slide-over details drawer. Content is pre-rendered per extension in <template>
+     tags below and cloned in by the page script, so markdown is rendered on the
+     server and the client stays dependency-free. -->
+<div data-drawer-root class="pointer-events-none fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div
+    data-drawer-backdrop
+    class="absolute inset-0 bg-zinc-950/70 opacity-0 backdrop-blur-sm"
+  >
+  </div>
+  <div
+    data-drawer-panel
+    role="dialog"
+    aria-modal="true"
+    class="absolute right-0 top-0 flex h-full w-full max-w-xl translate-x-full flex-col border-l border-zinc-800 bg-zinc-950 shadow-2xl"
+  >
+    <div data-drawer-content class="flex min-h-0 flex-1 flex-col"></div>
+  </div>
+</div>
+
+{
+  plugins.map((plugin) => {
+    const published = Boolean(plugin.sha256);
+    const readmeHtml =
+      renderMarkdown(plugin.readme) ||
+      '<p class="text-zinc-500">No README has been published for this extension yet.</p>';
+
+    return (
+      <template data-detail-template={plugin.id}>
+        <header class="flex items-start gap-3 border-b border-zinc-800 px-5 py-4">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-400/15 to-purple-500/15 text-cyan-300 ring-1 ring-inset ring-zinc-700/60">
+            <Icon name={plugin.icon} class="h-5.5 w-5.5" />
+          </span>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5">
+              <h2 class="truncate text-base font-semibold text-zinc-100">{plugin.name}</h2>
+              {plugin.publisherVerified && (
+                <Icon name="badge-check" class="h-4 w-4 shrink-0 text-cyan-400" />
+              )}
+            </div>
+            <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-zinc-500">
+              <span>{plugin.publisherName}</span>
+              <span aria-hidden="true">·</span>
+              <span class="font-mono">v{plugin.version}</span>
+              <span aria-hidden="true">·</span>
+              <span>min core {plugin.minCoreVersion}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            data-drawer-close
+            aria-label="Close details"
+            class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-zinc-800 text-zinc-400 transition hover:border-zinc-700 hover:text-white"
+          >
+            <Icon name="x" class="h-4 w-4" />
+          </button>
+        </header>
+
+        <div class="flex items-center gap-4 border-b border-zinc-800 px-5 py-3 text-xs text-zinc-500">
+          <span class="inline-flex items-center gap-1.5">
+            <Icon name="download" class="h-3.5 w-3.5" />
+            {plugin.downloads.toLocaleString()} downloads
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            {plugin.platforms.map((platform) => (
+              <span title={platform}>
+                <Icon name={PLATFORM_ICONS[platform] ?? 'package'} class="h-3.5 w-3.5" />
+              </span>
+            ))}
+          </span>
+          <span class="ml-auto rounded-md border border-zinc-800 px-2 py-0.5 text-[0.7rem] text-zinc-400">
+            {plugin.category}
+          </span>
+        </div>
+
+        <nav class="flex gap-1 border-b border-zinc-800 px-3" role="tablist">
+          {['Overview', 'Routes', 'Installation', 'Manifest'].map((tab, index) => (
+            <button
+              type="button"
+              role="tab"
+              data-detail-tab={tab.toLowerCase()}
+              data-active={index === 0 ? 'true' : 'false'}
+              class="tab-btn border-b-2 border-transparent px-3 py-2.5 text-sm text-zinc-400 transition hover:text-zinc-200 data-[active=true]:border-cyan-400 data-[active=true]:text-white"
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
+
+        <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          <section data-detail-panel="overview" class="prose" set:html={readmeHtml} />
+
+          <section data-detail-panel="routes" class="hidden">
+            {plugin.routes.length > 0 ? (
+              <ul class="flex flex-col gap-2">
+                {plugin.routes.map((route) => (
+                  <li class="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2.5">
+                    <Icon name="route" class="h-4 w-4 text-cyan-400" />
+                    <span class="font-mono text-sm text-zinc-200">{route}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="text-sm text-zinc-500">No conversion routes declared.</p>
+            )}
+          </section>
+
+          <section data-detail-panel="installation" class="hidden flex-col gap-5">
+            <div>
+              <h3 class="text-sm font-semibold text-zinc-200">Install with OpenROM Core</h3>
+              <div class="mt-2 flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                <code class="flex-1 overflow-x-auto font-mono text-xs text-cyan-300">
+                  {cliFor(plugin.id)}
+                </code>
+                <button
+                  type="button"
+                  data-copy-cli={cliFor(plugin.id)}
+                  aria-label="Copy install command"
+                  class="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-400 transition hover:text-cyan-300"
+                >
+                  <Icon name="copy" class="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-sm font-semibold text-zinc-200">Bundle</h3>
+              {published ? (
+                <dl class="mt-2 space-y-1.5 text-xs">
+                  <div class="flex gap-2">
+                    <dt class="w-20 shrink-0 text-zinc-500">Source</dt>
+                    <dd class="break-all font-mono text-zinc-300">{plugin.downloadUrl}</dd>
+                  </div>
+                  <div class="flex gap-2">
+                    <dt class="w-20 shrink-0 text-zinc-500">SHA-256</dt>
+                    <dd class="break-all font-mono text-zinc-300">{plugin.sha256}</dd>
+                  </div>
+                </dl>
+              ) : (
+                <p class="mt-2 text-xs text-zinc-500">
+                  No <span class="font-mono">.orplug</span> bundle has been published for this
+                  extension yet, so it cannot be installed. Track progress on{' '}
+                  <a class="text-cyan-400 hover:underline" href={SITE.github}>GitHub</a>.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section data-detail-panel="manifest" class="hidden">
+            <pre class="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-300">
+              {JSON.stringify(manifestFor(plugin), null, 2)}
+            </pre>
+          </section>
+        </div>
+
+        <footer class="flex items-center gap-3 border-t border-zinc-800 px-5 py-4">
+          {published ? (
+            <a
+              href={`/api/download/${plugin.id}`}
+              class="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-4 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
+            >
+              <Icon name="download" class="h-4 w-4" />
+              Download extension
+            </a>
+          ) : (
+            <span class="inline-flex h-10 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-zinc-800 text-sm font-medium text-zinc-500">
+              Bundle not published yet
+            </span>
+          )}
+          <a
+            href={SITE.contributing}
+            class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-800 px-4 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+          >
+            Publish
+          </a>
+        </footer>
+      </template>
+    );
+  })
+}

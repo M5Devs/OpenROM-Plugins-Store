@@ -2,5 +2,8 @@
 /publishers/             @ClausValcaTD
 /scripts/                @ClausValcaTD
 /.github/                @ClausValcaTD
-schema.sql               @ClausValcaTD
+/src/                    @ClausValcaTD
+/migrations/             @ClausValcaTD
+/seed/                   @ClausValcaTD
+wrangler.toml            @ClausValcaTD
 verified_publishers.json @ClausValcaTD

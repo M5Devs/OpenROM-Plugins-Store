@@ -1,109 +1,115 @@
 # OpenROM Marketplace
 
-The metadata-only extension storefront for the **OpenROM** retro-gaming preservation
-toolchain. This repository hosts the catalog, extension manifests, and the static
-web storefront deployed to Cloudflare Pages at **openrom-store.pages.dev**.
+The extension marketplace for the **OpenROM** retro-gaming preservation toolchain.
+It is a full-stack [Astro](https://astro.build) application that renders on demand at
+the edge and reads its catalog live from a **Cloudflare D1** database. It deploys to
+Cloudflare Pages at **openrom-store.pages.dev**.
 
-> **This repository never stores plugin binaries.** Packaged `.orplug` bundles live
-> exclusively on SourceForge and are referenced from the catalog by URL + SHA-256.
-> `*.orplug` is git-ignored and has been purged from the entire Git history.
+> **This repository never stores plugin binaries.** Packaged `.orplug` bundles are
+> hosted on SourceForge (or a GitHub release) and referenced from the catalog by
+> download URL + SHA-256. `*.orplug` is git-ignored and has been purged from the
+> entire Git history.
+
+## Stack
+
+| Layer | Choice |
+| --- | --- |
+| Framework | Astro 5 (`output: 'server'`) |
+| Adapter | `@astrojs/cloudflare` (Cloudflare Pages) |
+| Styling | Tailwind CSS v4 via `@tailwindcss/vite` |
+| Database | Cloudflare D1 (`DB` binding) |
+| Markdown | `marked` + a small sanitizer |
+
+## Zero fake data
+
+The store shows **only real numbers**. Download counts are real integers that start at
+`0` and are incremented by the download endpoint; there are no fabricated ratings.
+If D1 is empty, the storefront renders a professional empty state:
+
+> **No community extensions published yet — Be the first to build for OpenROM!**
+
+with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
-| `public/` | Static storefront (Cloudflare Pages build output) |
-| `public/index.html` | Single-page marketplace app (Tailwind + Alpine.js) |
-| `public/plugins.json` | Showcase catalog consumed by the storefront |
-| `public/api/catalog.json` | Generated catalog API (built by CI) |
+| `src/pages/index.astro` | Storefront (search, filters, cards, detail drawer) |
+| `src/pages/api/plugins.json.ts` | Live catalog: `SELECT * FROM plugins` |
+| `src/pages/api/download/[id].ts` | Atomic download counter + redirect to the bundle |
+| `src/components/` | `Navbar`, `Card`, `DetailDrawer`, `CategoryFilter`, `Icon` |
+| `src/lib/db.ts` | Typed D1 access layer |
+| `migrations/0001_init.sql` | D1 schema |
+| `seed/0001_seed.sql` | Seed with the repository's real, verified extensions |
 | `manifests/m/<publisher>/<plugin>/<version>/manifest.json` | Per-extension manifests |
 | `publishers/` | Publisher records |
-| `scripts/` | Validation, catalog build, and packaging tooling |
-| `schema.sql` | Cloudflare D1 schema (optional dynamic backend) |
+| `scripts/` | Manifest validation tooling |
+| `wrangler.toml` | Cloudflare Pages + D1 binding configuration |
 
-## Extension data contract (`public/plugins.json`)
-
-The storefront reads a flat JSON array of extension objects:
-
-```json
-[
-  {
-    "id": "nkit",
-    "name": "NKit",
-    "version": "3.1.0",
-    "minCoreVersion": "3.9.0",
-    "publisher": { "id": "nanook", "name": "Nanook", "verified": true },
-    "category": "Nintendo",
-    "description": "Lossless GameCube & Wii preservation, WUA conversion, and Redump restoration.",
-    "readme": "### Features\n- 1:1 Redump disc verification\n- WUA compression\n- Lossless GameCube scrubbing",
-    "routes": ["ISO -> WUA", "WUD -> Loadiine", "GCZ -> ISO"],
-    "platforms": ["Windows", "Linux", "macOS"],
-    "downloadUrl": "https://downloads.sourceforge.net/project/openrom-binaries/plugins/nkit-3.1.0.orplug",
-    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "icon": "gamepad",
-    "downloads": 1420,
-    "lastUpdated": "2026-10-25",
-    "license": "MIT",
-    "tags": ["nintendo", "gamecube", "wii", "wua"],
-    "rating": 4.9
-  }
-]
-```
-
-`icon` is a [Lucide](https://lucide.dev) icon name; `routes` are human-readable
-`INPUT -> OUTPUT` mappings rendered as visual badges in the details drawer.
-
-## Storefront features
-
-- **Header** with OpenROM Marketplace branding, live search, GitHub / Discord links,
-  and a **Publish an Extension** call to action.
-- **Discovery**: category sidebar (All, Nintendo, PlayStation, Sega, Xbox, Utility,
-  Patchers), platform chips (Windows / Linux / macOS), publisher filter, and instant
-  client-side search across name, description, publisher, category, tags and routes.
-- **Extension cards** with icon, name, verified-publisher badge, download count,
-  rating, category, route preview, and a 1-click *Copy CLI install* button.
-- **VS Code-style details drawer** with a tabbed interface:
-  *Overview* (rendered Markdown), *Supported Routes* (`ISO ➔ WUA` badges),
-  *Installation* (CLI + manual GUI drag-and-drop), and *Manifest* (raw JSON viewer).
-- **Dark theme** by default (zinc-900/950 with neon cyan/purple accents).
-
-## Local preview
+## Local development
 
 ```bash
-python3 -m http.server 12000 --directory public
-# open http://localhost:12000
+npm install
+
+# 1. Create the local D1 database, apply the schema, and load the seed data.
+npm run db:reset:local
+
+# 2. Start the dev server (emulates the D1 binding via platformProxy).
+npm run dev            # http://localhost:4321
+```
+
+Useful scripts:
+
+```bash
+npm run build                 # production build to dist/
+npm run db:migrate:local      # apply migrations locally
+npm run db:seed:local         # (re)load seed data
+python scripts/validate_plugin.py   # validate manifests
+python -m unittest discover tests   # security test suite
+```
+
+## Provisioning the D1 database
+
+```bash
+# Create the database, then copy the printed database_id into wrangler.toml.
+npx wrangler d1 create openrom-store
+
+# Apply migrations + seed to the remote database.
+npm run db:migrate:remote
+npm run db:seed:remote
 ```
 
 ## Deploy to Cloudflare Pages
 
-The app is 100% static. Point a Pages project at this repository with:
+Create a Pages project for this repository and set:
 
-- **Build output directory:** `public`
-- **Build command:** *(none)*
+- **Build command:** `npm run build`
+- **Build output directory:** `dist`
+- **Build system version:** **V2** (required — configuring D1 bindings through
+  `wrangler.toml` needs V2; see the [Pages Wrangler configuration docs](https://developers.cloudflare.com/pages/functions/wrangler-configuration/))
+- **Compatibility flags:** `nodejs_compat`
+- **D1 binding:** variable `DB` → the `openrom-store` database
 
-Or deploy directly:
+> Upgrading an existing project that was a no-build static site (as this one was)
+> requires setting the build command and switching the project to the V2 build
+> system in **Settings → Build**; otherwise the build fails with
+> "Output directory not found" and the `wrangler.toml` bindings are ignored.
+
+Once `wrangler.toml` carries a real `database_id`, Cloudflare reads the binding
+from it. Alternatively deploy from the CLI:
 
 ```bash
-npx wrangler pages deploy public --project-name openrom-store
+npm run build
+npx wrangler pages deploy dist --project-name openrom-store
 ```
-
-Security headers and legacy redirects are declared in `public/_headers` and
-`public/_redirects`.
 
 ## Publishing an extension
 
 1. Add `manifests/m/<publisher-id>/<plugin-id>/<version>/manifest.json`.
 2. Ensure a matching record exists at `publishers/<publisher-id>.json`.
-3. Open a pull request. CI runs `scripts/validate_plugin.py` and
-   `scripts/build_catalog.py`, then commits the regenerated `public/api/catalog.json`.
+3. Open a pull request. CI validates the manifests and builds the site.
+4. Once the `.orplug` bundle is published, a maintainer inserts the row (with its
+   real SHA-256) into D1 so the extension appears in the marketplace.
 
-Manifests may not self-declare verification, and the manifest's `publisher_id`
-must match its directory path — see `tests/test_security.py`.
-
-## Tooling
-
-```bash
-python scripts/validate_plugin.py   # validate manifests
-python scripts/build_catalog.py     # regenerate public/api/catalog.json
-python -m unittest discover tests   # run the security test suite
-```
+Manifests may not self-declare verification, and the manifest's `publisher_id` must
+match its directory path — see `tests/test_security.py`.

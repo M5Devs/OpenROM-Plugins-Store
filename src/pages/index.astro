@@ -1,0 +1,327 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CategoryFilter from '../components/CategoryFilter.astro';
+import Card from '../components/Card.astro';
+import DetailDrawer from '../components/DetailDrawer.astro';
+import Icon from '../components/Icon.astro';
+import { getDB, listPlugins, type Plugin } from '../lib/db';
+import { EMPTY_STATE, SITE, orderCategories } from '../lib/site';
+
+export const prerender = false;
+
+let plugins: Plugin[] = [];
+let dbError: string | null = null;
+try {
+  plugins = await listPlugins(getDB(Astro.locals));
+} catch (error) {
+  dbError = error instanceof Error ? error.message : String(error);
+}
+
+const categories = orderCategories(plugins.map((plugin) => plugin.category));
+const platforms = [...new Set(plugins.flatMap((plugin) => plugin.platforms))].sort();
+
+const categoryCounts = plugins.reduce<Record<string, number>>((acc, plugin) => {
+  acc[plugin.category] = (acc[plugin.category] ?? 0) + 1;
+  return acc;
+}, {});
+
+const total = plugins.length;
+---
+
+<Layout title={SITE.name} description={SITE.description}>
+  <div class="aurora relative">
+    <div class="grid-lines pointer-events-none absolute inset-0" aria-hidden="true"></div>
+
+    <section class="relative mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8">
+      <p class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-cyan-400"></span>
+        Live catalog · served from Cloudflare D1
+      </p>
+      <h1 class="mt-5 max-w-3xl text-balance text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        Extend your OpenROM preservation workflow
+      </h1>
+      <p class="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400">
+        {SITE.description} Every download count below is a real, live number — nothing here is
+        simulated.
+      </p>
+
+      <div class="mt-7 flex flex-wrap items-center gap-3">
+        <a
+          href="#catalog"
+          class="inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
+        >
+          Browse extensions
+          <Icon name="chevron-right" class="h-4 w-4" />
+        </a>
+        <a
+          href={SITE.contributing}
+          class="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
+        >
+          Publish an Extension
+        </a>
+      </div>
+    </section>
+  </div>
+
+  <main id="catalog" class="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+    {
+      dbError ? (
+        <div class="rounded-xl border border-red-500/30 bg-red-500/5 p-6">
+          <h2 class="text-sm font-semibold text-red-300">Catalog temporarily unavailable</h2>
+          <p class="mt-1.5 text-sm text-zinc-400">
+            The D1 database could not be reached. Please try again shortly.
+          </p>
+          <p class="mt-3 break-all font-mono text-xs text-zinc-600">{dbError}</p>
+        </div>
+      ) : total === 0 ? (
+        <div
+          class="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30 px-6 py-20 text-center"
+          data-empty-state
+        >
+          <div class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400/15 to-purple-500/15 text-cyan-300 ring-1 ring-inset ring-zinc-700/60">
+            <Icon name="inbox" class="h-7 w-7" />
+          </div>
+          <h2 class="mt-6 text-xl font-semibold text-white">{EMPTY_STATE.title}</h2>
+          <p class="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-400">
+            {EMPTY_STATE.body}
+          </p>
+          <a
+            href={SITE.contributing}
+            class="mt-7 inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
+          >
+            {EMPTY_STATE.cta}
+            <Icon name="external-link" class="h-4 w-4" />
+          </a>
+        </div>
+      ) : (
+        <div class="grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
+          <CategoryFilter
+            categories={categories}
+            platforms={platforms}
+            categoryCounts={categoryCounts}
+            total={total}
+          />
+
+          <section>
+            <div class="mb-5 flex items-baseline justify-between">
+              <h2 class="text-sm font-semibold text-zinc-300">
+                <span data-result-count>{total}</span>
+                {total === 1 ? ' extension' : ' extensions'}
+              </h2>
+              <p class="text-xs text-zinc-600">Sorted live from D1</p>
+            </div>
+
+            <div data-plugin-grid class="grid gap-4 sm:grid-cols-2">
+              {plugins.map((plugin) => (
+                <Card plugin={plugin} />
+              ))}
+            </div>
+
+            <div
+              data-no-results
+              class="hidden rounded-xl border border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center"
+            >
+              <Icon name="search" class="mx-auto h-6 w-6 text-zinc-600" />
+              <p class="mt-3 text-sm text-zinc-400">No extensions match your filters.</p>
+              <button
+                type="button"
+                data-clear-filters
+                class="mt-4 rounded-lg border border-zinc-800 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+              >
+                Clear filters
+              </button>
+            </div>
+          </section>
+        </div>
+      )
+    }
+  </main>
+
+  <DetailDrawer plugins={plugins} />
+</Layout>
+
+<script>
+  const state = { query: '', category: '', platforms: new Set<string>(), sort: 'downloads' };
+
+  const grid = document.querySelector<HTMLElement>('[data-plugin-grid]');
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('.plugin-card'));
+  const noResults = document.querySelector<HTMLElement>('[data-no-results]');
+  const countEl = document.querySelector<HTMLElement>('[data-result-count]');
+  const searchInput = document.querySelector<HTMLInputElement>('#search');
+
+  function applyFilters() {
+    if (!grid) return;
+    let visible = 0;
+
+    for (const card of cards) {
+      const search = card.dataset.search ?? '';
+      const category = card.dataset.category ?? '';
+      const platforms = (card.dataset.platforms ?? '').split('|');
+
+      const matchesQuery = !state.query || search.includes(state.query);
+      const matchesCategory = !state.category || category === state.category;
+      const matchesPlatform =
+        state.platforms.size === 0 || platforms.some((p) => state.platforms.has(p));
+
+      const show = matchesQuery && matchesCategory && matchesPlatform;
+      card.classList.toggle('hidden', !show);
+      if (show) visible += 1;
+    }
+
+    const sorted = [...cards].sort((a, b) => {
+      if (state.sort === 'name') {
+        return (a.querySelector('h3')?.textContent ?? '').localeCompare(
+          b.querySelector('h3')?.textContent ?? '',
+        );
+      }
+      if (state.sort === 'newest') {
+        return (b.dataset.created ?? '').localeCompare(a.dataset.created ?? '');
+      }
+      return Number(b.dataset.downloads ?? 0) - Number(a.dataset.downloads ?? 0);
+    });
+    for (const card of sorted) grid.appendChild(card);
+
+    if (countEl) countEl.textContent = String(visible);
+    noResults?.classList.toggle('hidden', visible !== 0);
+    grid.classList.toggle('hidden', visible === 0);
+  }
+
+  // --- Search ---
+  searchInput?.addEventListener('input', () => {
+    state.query = searchInput.value.trim().toLowerCase();
+    applyFilters();
+  });
+
+  // --- Category ---
+  for (const btn of document.querySelectorAll<HTMLElement>('.category-btn')) {
+    btn.addEventListener('click', () => {
+      for (const other of document.querySelectorAll<HTMLElement>('.category-btn')) {
+        other.dataset.active = 'false';
+      }
+      btn.dataset.active = 'true';
+      state.category = btn.dataset.category ?? '';
+      applyFilters();
+    });
+  }
+
+  // --- Platform ---
+  for (const chip of document.querySelectorAll<HTMLElement>('.platform-chip')) {
+    chip.addEventListener('click', () => {
+      const platform = chip.dataset.platform ?? '';
+      const active = chip.dataset.active === 'true';
+      if (active) {
+        chip.dataset.active = 'false';
+        state.platforms.delete(platform);
+      } else {
+        chip.dataset.active = 'true';
+        state.platforms.add(platform);
+      }
+      applyFilters();
+    });
+  }
+
+  // --- Sort ---
+  document.querySelector<HTMLSelectElement>('[data-sort]')?.addEventListener('change', (event) => {
+    state.sort = (event.target as HTMLSelectElement).value;
+    applyFilters();
+  });
+
+  // --- Clear ---
+  document.querySelector<HTMLElement>('[data-clear-filters]')?.addEventListener('click', () => {
+    state.query = '';
+    state.category = '';
+    state.platforms.clear();
+    if (searchInput) searchInput.value = '';
+    for (const btn of document.querySelectorAll<HTMLElement>('.category-btn')) {
+      btn.dataset.active = btn.dataset.category === '' ? 'true' : 'false';
+    }
+    for (const chip of document.querySelectorAll<HTMLElement>('.platform-chip')) {
+      chip.dataset.active = 'false';
+    }
+    applyFilters();
+  });
+
+  // --- Copy install command ---
+  document.addEventListener('click', async (event) => {
+    const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-copy-cli]');
+    if (!trigger) return;
+    const command = trigger.dataset.copyCli ?? '';
+    try {
+      await navigator.clipboard.writeText(command);
+      const original = trigger.innerHTML;
+      trigger.innerHTML = '<span class="text-cyan-400">copied</span>';
+      setTimeout(() => (trigger.innerHTML = original), 1200);
+    } catch {
+      /* clipboard unavailable */
+    }
+  });
+
+  // --- Details drawer ---
+  const drawer = document.querySelector<HTMLElement>('[data-drawer-root]');
+  const backdrop = document.querySelector<HTMLElement>('[data-drawer-backdrop]');
+  const panel = document.querySelector<HTMLElement>('[data-drawer-panel]');
+  const content = document.querySelector<HTMLElement>('[data-drawer-content]');
+
+  function openDrawer(id: string) {
+    const template = document.querySelector<HTMLTemplateElement>(`[data-detail-template="${id}"]`);
+    if (!template || !drawer || !content || !panel || !backdrop) return;
+    content.replaceChildren(template.content.cloneNode(true));
+    drawer.classList.remove('hidden');
+    drawer.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => {
+      panel.classList.remove('translate-x-full');
+      backdrop.classList.remove('opacity-0');
+    });
+    history.replaceState(null, '', `?ext=${encodeURIComponent(id)}`);
+  }
+
+  function closeDrawer() {
+    if (!drawer || !panel || !backdrop) return;
+    panel.classList.add('translate-x-full');
+    backdrop.classList.add('opacity-0');
+    drawer.setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+      drawer.classList.add('hidden');
+      content?.replaceChildren();
+    }, 260);
+    history.replaceState(null, '', location.pathname + location.search.replace(/([?&])ext=[^&]*/g, '$1').replace(/[?&]$/, ''));
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement;
+    const opener = target.closest<HTMLElement>('[data-open-detail]');
+    if (opener?.dataset.openDetail) {
+      openDrawer(opener.dataset.openDetail);
+      return;
+    }
+    if (target.closest('[data-drawer-close]') || target === backdrop) closeDrawer();
+  });
+
+  // --- Drawer tabs (delegated) ---
+  content?.addEventListener('click', (event) => {
+    const tab = (event.target as HTMLElement).closest<HTMLElement>('[data-detail-tab]');
+    if (!tab || !content) return;
+    const name = tab.dataset.detailTab ?? '';
+    for (const btn of content.querySelectorAll<HTMLElement>('[data-detail-tab]')) {
+      btn.dataset.active = btn.dataset.detailTab === name ? 'true' : 'false';
+    }
+    for (const section of content.querySelectorAll<HTMLElement>('[data-detail-panel]')) {
+      section.classList.toggle('hidden', section.dataset.detailPanel !== name);
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeDrawer();
+  });
+
+  // --- Deep links: ?q= pre-filters, ?ext= opens a drawer ---
+  const params = new URLSearchParams(location.search);
+  const q = params.get('q');
+  if (q && searchInput) {
+    searchInput.value = q;
+    state.query = q.trim().toLowerCase();
+    applyFilters();
+  }
+  const ext = params.get('ext');
+  if (ext) openDrawer(ext);
+</script>

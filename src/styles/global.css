@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #09090b; /* zinc-950 */
+  color: #e4e4e7; /* zinc-200 */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient retro grid + glow behind the storefront. */
+.aurora {
+  background:
+    radial-gradient(60rem 40rem at 15% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
+    radial-gradient(50rem 35rem at 90% 0%, rgba(168, 85, 247, 0.14), transparent 60%);
+}
+
+.grid-lines {
+  background-image:
+    linear-gradient(to right, rgba(63, 63, 70, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(63, 63, 70, 0.35) 1px, transparent 1px);
+  background-size: 2.5rem 2.5rem;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+/* Rendered README (no typography plugin — kept intentionally small). */
+.prose {
+  color: #d4d4d8;
+  line-height: 1.7;
+  font-size: 0.9375rem;
+}
+.prose h1,
+.prose h2,
+.prose h3 {
+  color: #fafafa;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.4em 0 0.5em;
+}
+.prose h1 { font-size: 1.4rem; }
+.prose h2 { font-size: 1.2rem; }
+.prose h3 { font-size: 1.05rem; }
+.prose p { margin: 0.75em 0; }
+.prose ul,
+.prose ol { margin: 0.75em 0; padding-left: 1.25rem; }
+.prose ul { list-style: disc; }
+.prose ol { list-style: decimal; }
+.prose li { margin: 0.3em 0; }
+.prose a { color: #22d3ee; text-decoration: underline; text-underline-offset: 2px; }
+.prose strong { color: #fafafa; }
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.375rem;
+  padding: 0.1rem 0.35rem;
+}
+.prose pre {
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.prose pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.prose blockquote {
+  border-left: 3px solid #22d3ee;
+  padding-left: 1rem;
+  color: #a1a1aa;
+  margin: 1em 0;
+}
+
+/* Details drawer transitions. */
+[data-drawer] {
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+}
+[data-drawer-backdrop] {
+  transition: opacity 200ms ease;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #09090b; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
