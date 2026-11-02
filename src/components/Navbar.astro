@@ -1,0 +1,65 @@
+---
+import { SITE } from '../lib/site';
+---
+
+<header class="sticky top-0 z-40 border-b border-zinc-900/80 bg-zinc-950/80 backdrop-blur-xl">
+  <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+    <a href="/" class="flex shrink-0 items-center gap-2.5">
+      <span
+        class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-purple-500/20 ring-1 ring-inset ring-cyan-400/30"
+      >
+        <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5 text-cyan-300" aria-hidden="true">
+          <rect x="2.5" y="7" width="19" height="11" rx="5.5" stroke="currentColor" stroke-width="1.6" />
+          <path d="M7 11v4M5 13h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          <circle cx="16" cy="12" r="1.1" fill="currentColor" />
+          <circle cx="18.5" cy="14.2" r="1.1" fill="currentColor" />
+        </svg>
+      </span>
+      <span class="hidden flex-col leading-none sm:flex">
+        <span class="text-sm font-semibold tracking-tight text-zinc-100">OpenROM</span>
+        <span class="text-[0.7rem] font-medium tracking-wide text-zinc-500">MARKETPLACE</span>
+      </span>
+    </a>
+
+    <div class="relative flex-1">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.6" />
+        <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+      <input
+        id="search"
+        type="search"
+        autocomplete="off"
+        placeholder="Search extensions, publishers, routes…"
+        aria-label="Search extensions"
+        class="h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900/60 pl-9 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+      />
+    </div>
+
+    <nav class="flex shrink-0 items-center gap-2">
+      <a
+        href={SITE.github}
+        class="hidden h-10 items-center gap-2 rounded-lg border border-zinc-800 px-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white sm:inline-flex"
+      >
+        GitHub
+      </a>
+      <a
+        href={SITE.discord}
+        class="hidden h-10 items-center gap-2 rounded-lg border border-zinc-800 px-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white sm:inline-flex"
+      >
+        Discord
+      </a>
+      <a
+        href={SITE.contributing}
+        class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-4 text-sm font-medium text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
+      >
+        Publish an Extension
+      </a>
+    </nav>
+  </div>
+</header>

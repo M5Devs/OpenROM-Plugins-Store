@@ -123,15 +123,14 @@ the manifest's `publisher_id`, or validation fails.
 
    ```bash
    python scripts/validate_plugin.py     # validates every manifest
-   python scripts/build_catalog.py       # regenerates public/api/catalog.json
    python -m unittest discover tests     # security tests
    ```
 
 4. Commit, push, and open a pull request against `main`.
 
-CI runs `scripts/validate_plugin.py` and `scripts/build_catalog.py` on every pull
-request. On merge to `main` it regenerates `public/api/catalog.json` and Cloudflare
-Pages redeploys the storefront.
+CI runs `scripts/validate_plugin.py`, the security test suite, and `npm run build`
+on every pull request. On merge to `main` Cloudflare Pages rebuilds and redeploys
+the storefront.
 
 ## What reviewers check
 
@@ -147,6 +146,15 @@ installed with:
 ```bash
 openrom-core --install-plugin <plugin-id>
 ```
+
+## How your extension reaches the storefront
+
+The storefront reads its catalog live from a Cloudflare D1 database. Once your
+manifest is merged **and** your `.orplug` bundle is uploaded to SourceForge (or a
+GitHub release), a maintainer adds a row to the `plugins` table with the real
+download URL and SHA-256. The extension then appears automatically — no redeploy,
+no fabricated stats. Download counts start at `0` and are incremented by the
+`/api/download/<plugin-id>` endpoint.
 
 ## Questions
 

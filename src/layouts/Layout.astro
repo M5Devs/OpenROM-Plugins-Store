@@ -1,0 +1,47 @@
+---
+import '../styles/global.css';
+import Navbar from '../components/Navbar.astro';
+import { SITE } from '../lib/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = SITE.name, description = SITE.description } = Astro.props;
+const fullTitle = title === SITE.name ? SITE.name : `${title} · ${SITE.name}`;
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#09090b" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="min-h-screen bg-zinc-950 text-zinc-200 antialiased">
+    <Navbar />
+    <slot />
+    <footer class="mt-24 border-t border-zinc-900">
+      <div
+        class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-zinc-500 sm:flex-row sm:px-6 lg:px-8"
+      >
+        <p>
+          OpenROM Marketplace — metadata-only catalog. Bundles are hosted on
+          SourceForge and verified by SHA-256.
+        </p>
+        <div class="flex items-center gap-5">
+          <a class="transition hover:text-cyan-400" href={SITE.github}>GitHub</a>
+          <a class="transition hover:text-cyan-400" href={SITE.discord}>Discord</a>
+          <a class="transition hover:text-cyan-400" href={SITE.contributing}>Publish</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

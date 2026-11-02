@@ -1,0 +1,29 @@
+{
+  "name": "openrom-store",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack extension marketplace for the OpenROM preservation toolchain (Astro + Cloudflare Pages + D1).",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "db:migrate:local": "wrangler d1 migrations apply openrom-store --local",
+    "db:migrate:remote": "wrangler d1 migrations apply openrom-store --remote",
+    "db:seed:local": "wrangler d1 execute openrom-store --local --file=./seed/0001_seed.sql",
+    "db:seed:remote": "wrangler d1 execute openrom-store --remote --file=./seed/0001_seed.sql",
+    "db:reset:local": "npm run db:migrate:local && npm run db:seed:local"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.13",
+    "astro": "^5.18.2",
+    "marked": "^18.1.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260116.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "wrangler": "4.59.2"
+  }
+}

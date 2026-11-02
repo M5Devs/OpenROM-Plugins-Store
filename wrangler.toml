@@ -1,5 +1,16 @@
 # Cloudflare Pages configuration for the OpenROM Marketplace.
-# Deploy with:  npx wrangler pages deploy public --project-name openrom-store
+#
+# `wrangler.toml` is the source of truth for the D1 binding, both when the Pages
+# project is built in CI and when the Cloudflare runtime is emulated locally via
+# the adapter's `platformProxy` (see astro.config.mjs).
 name = "openrom-store"
 compatibility_date = "2026-10-01"
-pages_build_output_dir = "public"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"                 # exposed at `Astro.locals.runtime.env.DB`
+database_name = "openrom-store"
+# Replace with the id printed by `npx wrangler d1 create openrom-store`.
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"

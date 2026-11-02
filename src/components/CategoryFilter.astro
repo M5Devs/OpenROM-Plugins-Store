@@ -1,0 +1,78 @@
+---
+import Icon from './Icon.astro';
+import { PLATFORM_ICONS } from '../lib/site';
+
+interface Props {
+  categories: string[];
+  platforms: string[];
+  categoryCounts: Record<string, number>;
+  total: number;
+}
+
+const { categories, platforms, categoryCounts, total } = Astro.props;
+---
+
+<aside class="flex flex-col gap-6 lg:sticky lg:top-24 lg:h-fit">
+  <section>
+    <h2 class="px-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Categories</h2>
+    <nav class="mt-3 flex flex-wrap gap-2 lg:flex-col lg:flex-nowrap" data-category-list>
+      <button
+        type="button"
+        data-category=""
+        class="category-btn group flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-zinc-900 data-[active=true]:bg-zinc-900 data-[active=true]:text-white"
+        data-active="true"
+      >
+        <span class="flex items-center gap-2">
+          <Icon name="layers" class="h-4 w-4 text-zinc-500 group-data-[active=true]:text-cyan-400" />
+          All Extensions
+        </span>
+        <span class="rounded-md bg-zinc-800/80 px-1.5 py-0.5 text-xs text-zinc-400">{total}</span>
+      </button>
+      {
+        categories.map((category) => (
+          <button
+            type="button"
+            data-category={category}
+            class="category-btn group flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-zinc-900 data-[active=true]:bg-zinc-900 data-[active=true]:text-white"
+          >
+            <span class="truncate">{category}</span>
+            <span class="rounded-md bg-zinc-800/80 px-1.5 py-0.5 text-xs text-zinc-400">
+              {categoryCounts[category] ?? 0}
+            </span>
+          </button>
+        ))
+      }
+    </nav>
+  </section>
+
+  <section>
+    <h2 class="px-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Platforms</h2>
+    <div class="mt-3 flex flex-wrap gap-2" data-platform-list>
+      {
+        platforms.map((platform) => (
+          <button
+            type="button"
+            data-platform={platform}
+            class="platform-chip inline-flex items-center gap-1.5 rounded-full border border-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-200 data-[active=true]:border-cyan-500/50 data-[active=true]:bg-cyan-500/10 data-[active=true]:text-cyan-300"
+          >
+            <Icon name={PLATFORM_ICONS[platform] ?? 'package'} class="h-3.5 w-3.5" />
+            {platform}
+          </button>
+        ))
+      }
+    </div>
+  </section>
+
+  <section>
+    <h2 class="px-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Sort</h2>
+    <select
+      data-sort
+      aria-label="Sort extensions"
+      class="mt-3 w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+    >
+      <option value="downloads">Most downloaded</option>
+      <option value="name">Name (A–Z)</option>
+      <option value="newest">Newest</option>
+    </select>
+  </section>
+</aside>
