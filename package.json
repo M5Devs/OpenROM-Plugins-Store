@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Full-stack extension marketplace for the OpenROM preservation toolchain (Astro + Cloudflare Pages + D1).",
+  "engines": {
+    "node": ">=20.3.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
