@@ -1,0 +1,5 @@
+# The storefront is now a single-page app; legacy deep links resolve to it.
+/plugin.html        /index.html    301
+/publisher.html     /index.html    301
+/plugins            /index.html    301
+/store              /index.html    301
