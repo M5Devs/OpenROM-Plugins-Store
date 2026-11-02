@@ -85,10 +85,18 @@ Create a Pages project for this repository and set:
 
 - **Build command:** `npm run build`
 - **Build output directory:** `dist`
+- **Build system version:** **V2** (required — configuring D1 bindings through
+  `wrangler.toml` needs V2; see the [Pages Wrangler configuration docs](https://developers.cloudflare.com/pages/functions/wrangler-configuration/))
 - **Compatibility flags:** `nodejs_compat`
 - **D1 binding:** variable `DB` → the `openrom-store` database
 
-Cloudflare reads the binding from `wrangler.toml`. Alternatively deploy from the CLI:
+> Upgrading an existing project that was a no-build static site (as this one was)
+> requires setting the build command and switching the project to the V2 build
+> system in **Settings → Build**; otherwise the build fails with
+> "Output directory not found" and the `wrangler.toml` bindings are ignored.
+
+Once `wrangler.toml` carries a real `database_id`, Cloudflare reads the binding
+from it. Alternatively deploy from the CLI:
 
 ```bash
 npm run build
