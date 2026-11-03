@@ -46,3 +46,42 @@ export function orderCategories(categories: string[]): string[] {
     return a.localeCompare(b);
   });
 }
+
+/** Up to two initials for an avatar fallback, e.g. "Claus Valca" -> "CV". */
+export function initialsFor(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+export interface SocialLink {
+  key: 'website' | 'github' | 'discord' | 'twitter';
+  label: string;
+  href: string;
+  icon: string;
+}
+
+/** The social pills shown on a publisher profile, in a stable order. */
+export function socialLinksFor(source: {
+  websiteUrl?: string;
+  githubUrl?: string;
+  discordUrl?: string;
+  twitterUrl?: string;
+}): SocialLink[] {
+  const candidates: Array<SocialLink | null> = [
+    source.websiteUrl
+      ? { key: 'website', label: 'Website', href: source.websiteUrl, icon: 'globe' }
+      : null,
+    source.githubUrl
+      ? { key: 'github', label: 'GitHub', href: source.githubUrl, icon: 'github' }
+      : null,
+    source.discordUrl
+      ? { key: 'discord', label: 'Discord', href: source.discordUrl, icon: 'message-circle' }
+      : null,
+    source.twitterUrl
+      ? { key: 'twitter', label: 'Twitter / X', href: source.twitterUrl, icon: 'twitter' }
+      : null,
+  ];
+  return candidates.filter((link): link is SocialLink => link !== null);
+}

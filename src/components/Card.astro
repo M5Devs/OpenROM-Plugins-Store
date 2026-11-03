@@ -50,7 +50,19 @@ const cli = `openrom-core --install-plugin ${plugin.id}`;
         }
       </div>
       <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-zinc-500">
-        <span>{plugin.publisherName}</span>
+        {
+          plugin.publisherId ? (
+            <a
+              href={`/publisher/${plugin.publisherId}`}
+              class="transition hover:text-cyan-300"
+              title={`View ${plugin.publisherName}'s profile`}
+            >
+              {plugin.publisherName}
+            </a>
+          ) : (
+            <span>{plugin.publisherName}</span>
+          )
+        }
         <span aria-hidden="true">·</span>
         <span class="font-mono">v{plugin.version}</span>
       </p>

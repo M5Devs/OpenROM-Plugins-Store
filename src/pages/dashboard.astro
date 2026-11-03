@@ -98,6 +98,20 @@ const ownsUsernameSlug = publishers.some((publisher) => publisher.id === usernam
                 >
                   {publisher.verified ? 'Verified' : 'Unverified'}
                 </span>
+                <a
+                  href={`/dashboard/publisher/${publisher.id}`}
+                  class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-800 px-3 text-xs font-medium text-zinc-300 transition hover:border-cyan-500/40 hover:text-cyan-300"
+                >
+                  <Icon name="pencil" class="h-3.5 w-3.5" />
+                  Customize
+                </a>
+                <a
+                  href={`/publisher/${publisher.id}`}
+                  class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-800 px-3 text-xs font-medium text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+                >
+                  <Icon name="external-link" class="h-3.5 w-3.5" />
+                  View
+                </a>
               </li>
             ))}
           </ul>

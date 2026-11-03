@@ -12,6 +12,7 @@ export interface PluginRow {
   name: string;
   version: string;
   min_core_version: string;
+  publisher_id: string | null;
   publisher_name: string;
   publisher_verified: number;
   category: string;
@@ -32,6 +33,7 @@ export interface Plugin {
   name: string;
   version: string;
   minCoreVersion: string;
+  publisherId: string | null;
   publisherName: string;
   publisherVerified: boolean;
   category: string;
@@ -62,6 +64,7 @@ export function toPlugin(row: PluginRow): Plugin {
     name: row.name,
     version: row.version,
     minCoreVersion: row.min_core_version,
+    publisherId: row.publisher_id ?? null,
     publisherName: row.publisher_name,
     publisherVerified: Boolean(row.publisher_verified),
     category: row.category,
@@ -88,16 +91,80 @@ export function getDB(locals: App.Locals): D1Database {
   return db;
 }
 
+/**
+ * Columns every plugin query selects. Publisher name and verification come from the
+ * `publishers` row when the plugin is linked (`publisher_id`); otherwise the
+ * denormalized values on the plugin row are used, so legacy rows still render.
+ */
+const PLUGIN_COLUMNS = `
+  p.id, p.name, p.version, p.min_core_version, p.publisher_id,
+  COALESCE(pub.name, p.publisher_name)         AS publisher_name,
+  COALESCE(pub.verified, p.publisher_verified) AS publisher_verified,
+  p.category, p.description, p.readme_markdown, p.routes_json, p.platforms_json,
+  p.download_url, p.sha256, p.icon, p.downloads, p.created_at
+`;
+
+const PLUGIN_SOURCE = `FROM plugins p LEFT JOIN publishers pub ON pub.id = p.publisher_id`;
+
 export async function listPlugins(db: D1Database): Promise<Plugin[]> {
   const { results } = await db
-    .prepare('SELECT * FROM plugins ORDER BY downloads DESC, name ASC')
+    .prepare(`SELECT ${PLUGIN_COLUMNS} ${PLUGIN_SOURCE} ORDER BY p.downloads DESC, p.name ASC`)
     .all<PluginRow>();
   return (results ?? []).map(toPlugin);
 }
 
 export async function getPlugin(db: D1Database, id: string): Promise<Plugin | null> {
-  const row = await db.prepare('SELECT * FROM plugins WHERE id = ?').bind(id).first<PluginRow>();
+  const row = await db
+    .prepare(`SELECT ${PLUGIN_COLUMNS} ${PLUGIN_SOURCE} WHERE p.id = ?`)
+    .bind(id)
+    .first<PluginRow>();
   return row ? toPlugin(row) : null;
+}
+
+/**
+ * Match a plugin to a publisher by the explicit `publisher_id` link, falling back
+ * to the display name only for rows that predate the link column.
+ */
+const PUBLISHER_MATCH = `(p.publisher_id = ?1 OR (p.publisher_id IS NULL AND p.publisher_name = ?2))`;
+
+export async function listPluginsByPublisher(
+  db: D1Database,
+  publisherId: string,
+  publisherName: string,
+): Promise<Plugin[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT ${PLUGIN_COLUMNS} ${PLUGIN_SOURCE} WHERE ${PUBLISHER_MATCH}
+       ORDER BY p.downloads DESC, p.name ASC`,
+    )
+    .bind(publisherId, publisherName)
+    .all<PluginRow>();
+  return (results ?? []).map(toPlugin);
+}
+
+export interface PublisherStats {
+  totalPlugins: number;
+  totalDownloads: number;
+}
+
+/** Live aggregates for the public profile — summed in D1, never cached in the row. */
+export async function getPublisherStats(
+  db: D1Database,
+  publisherId: string,
+  publisherName: string,
+): Promise<PublisherStats> {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS total_plugins, COALESCE(SUM(p.downloads), 0) AS total_downloads
+         FROM plugins p
+        WHERE ${PUBLISHER_MATCH}`,
+    )
+    .bind(publisherId, publisherName)
+    .first<{ total_plugins: number; total_downloads: number }>();
+  return {
+    totalPlugins: row?.total_plugins ?? 0,
+    totalDownloads: row?.total_downloads ?? 0,
+  };
 }
 
 /** Atomically bump the real download counter. Returns the target URL, if known. */

@@ -256,65 +256,7 @@ const total = plugins.length;
     }
   });
 
-  // --- Details drawer ---
-  const drawer = document.querySelector<HTMLElement>('[data-drawer-root]');
-  const backdrop = document.querySelector<HTMLElement>('[data-drawer-backdrop]');
-  const panel = document.querySelector<HTMLElement>('[data-drawer-panel]');
-  const content = document.querySelector<HTMLElement>('[data-drawer-content]');
-
-  function openDrawer(id: string) {
-    const template = document.querySelector<HTMLTemplateElement>(`[data-detail-template="${id}"]`);
-    if (!template || !drawer || !content || !panel || !backdrop) return;
-    content.replaceChildren(template.content.cloneNode(true));
-    drawer.classList.remove('hidden');
-    drawer.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => {
-      panel.classList.remove('translate-x-full');
-      backdrop.classList.remove('opacity-0');
-    });
-    history.replaceState(null, '', `?ext=${encodeURIComponent(id)}`);
-  }
-
-  function closeDrawer() {
-    if (!drawer || !panel || !backdrop) return;
-    panel.classList.add('translate-x-full');
-    backdrop.classList.add('opacity-0');
-    drawer.setAttribute('aria-hidden', 'true');
-    setTimeout(() => {
-      drawer.classList.add('hidden');
-      content?.replaceChildren();
-    }, 260);
-    history.replaceState(null, '', location.pathname + location.search.replace(/([?&])ext=[^&]*/g, '$1').replace(/[?&]$/, ''));
-  }
-
-  document.addEventListener('click', (event) => {
-    const target = event.target as HTMLElement;
-    const opener = target.closest<HTMLElement>('[data-open-detail]');
-    if (opener?.dataset.openDetail) {
-      openDrawer(opener.dataset.openDetail);
-      return;
-    }
-    if (target.closest('[data-drawer-close]') || target === backdrop) closeDrawer();
-  });
-
-  // --- Drawer tabs (delegated) ---
-  content?.addEventListener('click', (event) => {
-    const tab = (event.target as HTMLElement).closest<HTMLElement>('[data-detail-tab]');
-    if (!tab || !content) return;
-    const name = tab.dataset.detailTab ?? '';
-    for (const btn of content.querySelectorAll<HTMLElement>('[data-detail-tab]')) {
-      btn.dataset.active = btn.dataset.detailTab === name ? 'true' : 'false';
-    }
-    for (const section of content.querySelectorAll<HTMLElement>('[data-detail-panel]')) {
-      section.classList.toggle('hidden', section.dataset.detailPanel !== name);
-    }
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeDrawer();
-  });
-
-  // --- Deep links: ?q= pre-filters, ?ext= opens a drawer ---
+  // --- Deep links: ?q= pre-filters the grid (the drawer handles ?ext= itself) ---
   const params = new URLSearchParams(location.search);
   const q = params.get('q');
   if (q && searchInput) {
@@ -322,6 +264,4 @@ const total = plugins.length;
     state.query = q.trim().toLowerCase();
     applyFilters();
   }
-  const ext = params.get('ext');
-  if (ext) openDrawer(ext);
 </script>
