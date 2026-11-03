@@ -1,0 +1,129 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Icon from '../../components/Icon.astro';
+import ImageField from '../../components/ImageField.astro';
+import { getSessionUser } from '../../lib/auth';
+import { getDB } from '../../lib/db';
+import { getUserProfile } from '../../lib/users';
+import { initialsFor } from '../../lib/site';
+import { AVATAR_MAX_DIMENSION, AVATAR_QUALITY } from '../../lib/image';
+
+export const prerender = false;
+
+const session = await getSessionUser(Astro);
+if (!session) {
+  return Astro.redirect('/api/auth/login', 302);
+}
+
+const profile = await getUserProfile(getDB(Astro.locals), session);
+const initials = initialsFor(profile.name);
+---
+
+<Layout title="Account settings">
+  <main class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <a
+      href="/dashboard"
+      class="inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-cyan-300"
+    >
+      <Icon name="arrow-left" class="h-4 w-4" />
+      Back to dashboard
+    </a>
+
+    <header class="mt-6">
+      <h1 class="text-xl font-bold tracking-tight text-white">Account settings</h1>
+      <p class="mt-1 text-sm text-zinc-500">
+        Signed in as <span class="font-mono text-zinc-300">@{profile.githubUsername}</span>. These
+        details are shown across the marketplace wherever your account appears.
+      </p>
+    </header>
+
+    <form data-profile-form class="mt-8 flex flex-col gap-6">
+      <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+        <h2 class="text-sm font-semibold text-zinc-200">Your profile</h2>
+        <div class="mt-5 flex flex-col gap-5">
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-zinc-400">Display name</span>
+            <input
+              name="name"
+              type="text"
+              maxlength="80"
+              value={profile.name}
+              placeholder={profile.githubUsername}
+              class="h-10 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+            />
+            <span class="text-[0.7rem] text-zinc-600">Leave blank to use your GitHub name.</span>
+          </label>
+
+          <ImageField
+            name="avatarUrl"
+            label="Avatar"
+            value={profile.avatarUrl}
+            variant="avatar"
+            maxDimension={AVATAR_MAX_DIMENSION}
+            quality={AVATAR_QUALITY}
+            initials={initials}
+            hint="Uploaded images are converted to WebP in your browser. Remove the image to fall back to your GitHub avatar."
+          />
+        </div>
+      </section>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400 disabled:opacity-60"
+        >
+          <Icon name="save" class="h-4 w-4" />
+          Save profile
+        </button>
+        <span data-form-status class="text-sm" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+  </main>
+</Layout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-profile-form]');
+  const status = document.querySelector<HTMLElement>('[data-form-status]');
+  const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+
+  function setStatus(message: string, kind: 'ok' | 'error') {
+    if (!status) return;
+    status.textContent = message;
+    status.className = 'text-sm ' + (kind === 'ok' ? 'text-cyan-300' : 'text-red-400');
+  }
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+
+    const payload = {
+      name: data.get('name'),
+      avatarUrl: data.get('avatarUrl'),
+    };
+
+    submit?.setAttribute('disabled', 'true');
+    setStatus('Saving…', 'ok');
+
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setStatus(result.error ?? 'Could not save your profile.', 'error');
+        return;
+      }
+
+      setStatus('Saved. Refreshing…', 'ok');
+      // The navbar avatar is rendered on the server, so reload to reflect the change.
+      setTimeout(() => location.reload(), 700);
+    } catch {
+      setStatus('Network error — please try again.', 'error');
+    } finally {
+      submit?.removeAttribute('disabled');
+    }
+  });
+</script>

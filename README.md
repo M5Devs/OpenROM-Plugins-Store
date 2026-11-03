@@ -36,6 +36,7 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | --- | --- |
 | `src/pages/index.astro` | Storefront (search, filters, cards, detail drawer) |
 | `src/pages/dashboard.astro` | Signed-in publisher dashboard (create + list publishers) |
+| `src/pages/dashboard/settings.astro` | Account settings (display name + avatar upload) |
 | `src/pages/dashboard/publisher/[id].astro` | Owner-only publisher profile editor |
 | `src/pages/publisher/[id].astro` | Public publisher showcase page |
 | `src/pages/api/plugins.json.ts` | Live catalog: `SELECT * FROM plugins` |
@@ -43,23 +44,28 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | `src/pages/api/auth/login.ts` | Redirects to GitHub OAuth with a `state` cookie |
 | `src/pages/api/auth/callback.ts` | Exchanges the code, upserts the user, issues the session cookie |
 | `src/pages/api/auth/logout.ts` | Clears the session cookie |
+| `src/pages/api/user/profile.ts` | `PATCH` the signed-in user's display name + avatar |
 | `src/pages/api/publishers/create.ts` | Creates a publisher owned by the signed-in user |
 | `src/pages/api/publishers/[id].ts` | `GET` a publisher profile + stats; `PATCH` the owner's branding |
-| `src/components/` | `Navbar`, `Card`, `DetailDrawer`, `CategoryFilter`, `Icon` |
+| `src/components/` | `Navbar`, `Card`, `DetailDrawer`, `CategoryFilter`, `Icon`, `ImageField` |
 | `src/lib/db.ts` | Typed D1 access layer for the catalog |
 | `src/lib/session.ts` | HMAC-signed session token (sign/verify) |
 | `src/lib/auth.ts` | Session helpers shared by pages and API routes |
 | `src/lib/github.ts` | GitHub OAuth + user API client |
 | `src/lib/users.ts` / `src/lib/publishers.ts` | D1 access for accounts and publishers |
 | `src/lib/publisher-profile.ts` | Assembles a publisher with its stats and extensions |
+| `src/lib/image.ts` | Image size/format validation + dimension parsing (shared) |
+| `src/lib/image-client.ts` | Browser-side downscale + WebP encoding for uploads |
+| `src/lib/media.ts` | Accepts an uploaded image data URL or an http(s) URL |
 | `migrations/0001_init.sql` | D1 schema for the catalog |
 | `migrations/0002_auth_and_publishers.sql` | D1 schema for users + publishers |
 | `migrations/0003_publisher_profiles.sql` | Publisher profile fields + `plugins.publisher_id` |
+| `migrations/0004_user_profiles.sql` | `users.profile_customized` flag |
 | `seed/0001_seed.sql` | Seed with the repository's real, verified extensions |
 | `manifests/m/<publisher>/<plugin>/<version>/manifest.json` | Per-extension manifests |
 | `publishers/` | Publisher records |
 | `scripts/` | Manifest validation tooling |
-| `tests/auth.test.ts` / `tests/publisher-profile.test.ts` | Unit tests (`npm test`) |
+| `tests/auth.test.ts` / `tests/publisher-profile.test.ts` / `tests/user-profile.test.ts` | Unit tests (`npm test`) |
 | `wrangler.toml` | Cloudflare Pages + D1 binding configuration |
 
 ## Local development
@@ -127,6 +133,39 @@ catalog cards. Plugins link to their publisher through `plugins.publisher_id`, a
 a plugin's name and verification are read from the `publishers` row via a `LEFT
 JOIN`, so renaming a publisher updates every card immediately. Rows that predate
 the link column fall back to matching on `publisher_name`.
+
+## Account settings
+
+Signed-in users can set a custom display name and avatar at `/dashboard/settings`
+(`PATCH /api/user/profile`). GitHub supplies the initial `name` and `avatar_url`, and
+they are refreshed on every login — so saving a custom profile sets a
+`profile_customized` flag (migration 0004) that tells the login upsert to leave the
+user's own values alone. Clearing the avatar falls back to the GitHub one.
+
+The avatar is stored in D1, not in the session cookie: a session token is a stateless
+HMAC-signed cookie capped at roughly 4 KB, and a base64 image is far larger. Pages read
+the custom profile from D1 at render time and overlay it on the session (see
+`toUserProfile`), so the navbar and dashboard show the uploaded avatar without ever
+putting it in the cookie.
+
+## Image uploads
+
+The avatar and cover-banner fields accept a direct file input
+(`<input type="file" accept="image/png,image/jpeg,image/webp">`). There is no upload
+endpoint — the browser does the work:
+
+1. `src/lib/image-client.ts` decodes the file, downscales it to fit the field's maximum
+   dimension, and re-encodes it as WebP (`canvas.toDataURL('image/webp', …)`), shrinking
+   the scale further until the result fits the 1.5 MB cap.
+2. The resulting `data:` URL is written to a hidden input, shown in the live preview, and
+   submitted with the rest of the form.
+
+The server never trusts it: `src/lib/image.ts` re-checks the declared MIME type against
+the real magic bytes (a PNG renamed to `.webp` is rejected), the decoded size, and the
+dimensions parsed straight from the file header. Avatars cap at 512 px, banners at
+1600 px. D1's hard limit is 2 MB per row, so 1.5 MB per image keeps a row holding both
+an avatar and a banner within it. A plain absolute `http(s)` URL is still accepted in
+place of an upload, and `javascript:`/`data:text/html` values are always rejected.
 
 ## Provisioning the D1 database
 

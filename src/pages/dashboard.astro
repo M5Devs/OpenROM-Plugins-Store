@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
 import { getSessionUser } from '../lib/auth';
 import { getDB } from '../lib/db';
+import { getUserProfile, type UserProfile } from '../lib/users';
 import { listPublishersForOwner, type Publisher } from '../lib/publishers';
 
 export const prerender = false;
@@ -12,16 +13,16 @@ if (!session) {
   return Astro.redirect('/api/auth/login', 302);
 }
 
-const user = {
+let user: Pick<UserProfile, 'githubId' | 'githubUsername' | 'name' | 'avatarUrl'> = {
   githubId: session.githubId,
   githubUsername: session.githubUsername,
   name: session.name,
-  avatarUrl: session.avatarUrl,
+  avatarUrl: session.avatarUrl ?? '',
 };
-
 let publishers: Publisher[] = [];
 let dbError: string | null = null;
 try {
+  user = await getUserProfile(getDB(Astro.locals), session);
   publishers = await listPublishersForOwner(getDB(Astro.locals), session.githubId);
 } catch (error) {
   dbError = error instanceof Error ? error.message : String(error);
@@ -33,29 +34,39 @@ const ownsUsernameSlug = publishers.some((publisher) => publisher.id === usernam
 
 <Layout title="Dashboard">
   <main class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-    <section class="flex items-center gap-4">
-      {
-        user.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt=""
-            width="56"
-            height="56"
-            referrerpolicy="no-referrer"
-            class="h-14 w-14 rounded-xl ring-1 ring-inset ring-zinc-700"
-          />
-        ) : (
-          <span class="grid h-14 w-14 place-items-center rounded-xl bg-zinc-800 text-lg font-semibold text-zinc-300">
-            {user.githubUsername.slice(0, 1).toUpperCase()}
-          </span>
-        )
-      }
-      <div class="min-w-0">
-        <h1 class="truncate text-2xl font-bold tracking-tight text-white">
-          {user.name ?? user.githubUsername}
-        </h1>
-        <p class="truncate text-sm text-zinc-500">@{user.githubUsername}</p>
+    <section class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        {
+          user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt=""
+              width="56"
+              height="56"
+              referrerpolicy="no-referrer"
+              class="h-14 w-14 rounded-xl object-cover ring-1 ring-inset ring-zinc-700"
+            />
+          ) : (
+            <span class="grid h-14 w-14 place-items-center rounded-xl bg-zinc-800 text-lg font-semibold text-zinc-300">
+              {user.githubUsername.slice(0, 1).toUpperCase()}
+            </span>
+          )
+        }
+        <div class="min-w-0">
+          <h1 class="truncate text-2xl font-bold tracking-tight text-white">
+            {user.name ?? user.githubUsername}
+          </h1>
+          <p class="truncate text-sm text-zinc-500">@{user.githubUsername}</p>
+        </div>
       </div>
+
+      <a
+        href="/dashboard/settings"
+        class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-zinc-800 px-4 text-sm font-medium text-zinc-200 transition hover:border-cyan-500/40 hover:text-cyan-300"
+      >
+        <Icon name="pencil" class="h-4 w-4" />
+        Account settings
+      </a>
     </section>
 
     <section class="mt-10">
