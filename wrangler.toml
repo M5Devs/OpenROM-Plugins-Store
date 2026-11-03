@@ -12,5 +12,5 @@ pages_build_output_dir = "dist"
 binding = "DB"                 # exposed at `Astro.locals.runtime.env.DB`
 database_name = "openrom-store"
 # Replace with the id printed by `npx wrangler d1 create openrom-store`.
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "e13f0450-6319-4ee7-af25-b422ddf6aa80"
 migrations_dir = "migrations"
