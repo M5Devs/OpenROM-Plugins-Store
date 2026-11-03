@@ -1,0 +1,217 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import { getSessionUser } from '../lib/auth';
+import { getDB } from '../lib/db';
+import { listPublishersForOwner, type Publisher } from '../lib/publishers';
+
+export const prerender = false;
+
+const session = await getSessionUser(Astro);
+if (!session) {
+  return Astro.redirect('/api/auth/login', 302);
+}
+
+const user = {
+  githubId: session.githubId,
+  githubUsername: session.githubUsername,
+  name: session.name,
+  avatarUrl: session.avatarUrl,
+};
+
+let publishers: Publisher[] = [];
+let dbError: string | null = null;
+try {
+  publishers = await listPublishersForOwner(getDB(Astro.locals), session.githubId);
+} catch (error) {
+  dbError = error instanceof Error ? error.message : String(error);
+}
+
+const usernameSlug = session.githubUsername.toLowerCase();
+const ownsUsernameSlug = publishers.some((publisher) => publisher.id === usernameSlug);
+---
+
+<Layout title="Dashboard">
+  <main class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <section class="flex items-center gap-4">
+      {
+        user.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt=""
+            width="56"
+            height="56"
+            referrerpolicy="no-referrer"
+            class="h-14 w-14 rounded-xl ring-1 ring-inset ring-zinc-700"
+          />
+        ) : (
+          <span class="grid h-14 w-14 place-items-center rounded-xl bg-zinc-800 text-lg font-semibold text-zinc-300">
+            {user.githubUsername.slice(0, 1).toUpperCase()}
+          </span>
+        )
+      }
+      <div class="min-w-0">
+        <h1 class="truncate text-2xl font-bold tracking-tight text-white">
+          {user.name ?? user.githubUsername}
+        </h1>
+        <p class="truncate text-sm text-zinc-500">@{user.githubUsername}</p>
+      </div>
+    </section>
+
+    <section class="mt-10">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold text-zinc-300">Your publishers</h2>
+        <span class="text-xs text-zinc-600">{publishers.length} registered</span>
+      </div>
+
+      {
+        dbError ? (
+          <p class="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-300">
+            Could not load your publishers. Please try again shortly.
+          </p>
+        ) : publishers.length === 0 ? (
+          <p class="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/30 p-6 text-sm text-zinc-400">
+            You have not registered a publisher yet. Create one below to start publishing
+            extensions.
+          </p>
+        ) : (
+          <ul class="mt-4 flex flex-col gap-2">
+            {publishers.map((publisher) => (
+              <li class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+                <Icon name="layers" class="h-4 w-4 shrink-0 text-zinc-500" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="truncate font-mono text-sm text-zinc-100">{publisher.id}</span>
+                    {publisher.verified && (
+                      <Icon name="badge-check" class="h-4 w-4 shrink-0 text-cyan-400" />
+                    )}
+                  </div>
+                  <p class="truncate text-xs text-zinc-500">{publisher.name}</p>
+                </div>
+                <span
+                  class:list={[
+                    'shrink-0 rounded-md border px-2 py-0.5 text-[0.7rem] font-medium',
+                    publisher.verified
+                      ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
+                      : 'border-zinc-800 text-zinc-500',
+                  ]}
+                >
+                  {publisher.verified ? 'Verified' : 'Unverified'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    <section class="mt-10 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+      <h2 class="text-sm font-semibold text-zinc-200">Create a publisher</h2>
+      <p class="mt-1 text-xs leading-relaxed text-zinc-500">
+        The publisher id is your permanent slug (lowercase letters, numbers, and hyphens).
+        It is marked <span class="text-cyan-300">verified</span> automatically when it matches
+        your GitHub username (<span class="font-mono">@{user.githubUsername}</span>).
+      </p>
+
+      <form data-publisher-form class="mt-5 flex flex-col gap-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-zinc-400">Publisher id</span>
+            <input
+              name="id"
+              required
+              minlength="2"
+              maxlength="39"
+              pattern="[a-z0-9]+(-[a-z0-9]+)*"
+              autocomplete="off"
+              placeholder={usernameSlug}
+              class="h-10 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+            />
+          </label>
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-zinc-400">Display name</span>
+            <input
+              name="name"
+              required
+              minlength="2"
+              maxlength="80"
+              autocomplete="off"
+              placeholder="Your name or team"
+              class="h-10 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+            />
+          </label>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
+          >
+            Create publisher
+          </button>
+          {
+            !ownsUsernameSlug && (
+              <button
+                type="button"
+                data-claim-username={usernameSlug}
+                class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-800 px-4 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+              >
+                Use my GitHub username
+              </button>
+            )
+          }
+          <span data-form-status class="text-sm" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-publisher-form]');
+  const status = document.querySelector<HTMLElement>('[data-form-status]');
+
+  function setStatus(message: string, kind: 'ok' | 'error') {
+    if (!status) return;
+    status.textContent = message;
+    status.className =
+      'text-sm ' + (kind === 'ok' ? 'text-cyan-300' : 'text-red-400');
+  }
+
+  document.querySelector<HTMLElement>('[data-claim-username]')?.addEventListener('click', (event) => {
+    const slug = (event.currentTarget as HTMLElement).dataset.claimUsername ?? '';
+    const idInput = form?.querySelector<HTMLInputElement>('input[name="id"]');
+    if (idInput) {
+      idInput.value = slug;
+      idInput.focus();
+    }
+  });
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    setStatus('Creating…', 'ok');
+
+    try {
+      const response = await fetch('/api/publishers/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: data.get('id'), name: data.get('name') }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setStatus(payload.error ?? 'Could not create the publisher.', 'error');
+        return;
+      }
+
+      setStatus(
+        payload.verified ? 'Publisher created and verified!' : 'Publisher created.',
+        'ok',
+      );
+      location.reload();
+    } catch {
+      setStatus('Network error — please try again.', 'error');
+    }
+  });
+</script>

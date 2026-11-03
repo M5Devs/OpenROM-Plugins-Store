@@ -12,6 +12,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "test": "node --experimental-strip-types --test \"tests/*.test.ts\"",
     "db:migrate:local": "wrangler d1 migrations apply openrom-store --local",
     "db:migrate:remote": "wrangler d1 migrations apply openrom-store --remote",
     "db:seed:local": "wrangler d1 execute openrom-store --local --file=./seed/0001_seed.sql",
