@@ -36,25 +36,30 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | --- | --- |
 | `src/pages/index.astro` | Storefront (search, filters, cards, detail drawer) |
 | `src/pages/dashboard.astro` | Signed-in publisher dashboard (create + list publishers) |
+| `src/pages/dashboard/publisher/[id].astro` | Owner-only publisher profile editor |
+| `src/pages/publisher/[id].astro` | Public publisher showcase page |
 | `src/pages/api/plugins.json.ts` | Live catalog: `SELECT * FROM plugins` |
 | `src/pages/api/download/[id].ts` | Atomic download counter + redirect to the bundle |
 | `src/pages/api/auth/login.ts` | Redirects to GitHub OAuth with a `state` cookie |
 | `src/pages/api/auth/callback.ts` | Exchanges the code, upserts the user, issues the session cookie |
 | `src/pages/api/auth/logout.ts` | Clears the session cookie |
 | `src/pages/api/publishers/create.ts` | Creates a publisher owned by the signed-in user |
+| `src/pages/api/publishers/[id].ts` | `GET` a publisher profile + stats; `PATCH` the owner's branding |
 | `src/components/` | `Navbar`, `Card`, `DetailDrawer`, `CategoryFilter`, `Icon` |
 | `src/lib/db.ts` | Typed D1 access layer for the catalog |
 | `src/lib/session.ts` | HMAC-signed session token (sign/verify) |
 | `src/lib/auth.ts` | Session helpers shared by pages and API routes |
 | `src/lib/github.ts` | GitHub OAuth + user API client |
 | `src/lib/users.ts` / `src/lib/publishers.ts` | D1 access for accounts and publishers |
+| `src/lib/publisher-profile.ts` | Assembles a publisher with its stats and extensions |
 | `migrations/0001_init.sql` | D1 schema for the catalog |
 | `migrations/0002_auth_and_publishers.sql` | D1 schema for users + publishers |
+| `migrations/0003_publisher_profiles.sql` | Publisher profile fields + `plugins.publisher_id` |
 | `seed/0001_seed.sql` | Seed with the repository's real, verified extensions |
 | `manifests/m/<publisher>/<plugin>/<version>/manifest.json` | Per-extension manifests |
 | `publishers/` | Publisher records |
 | `scripts/` | Manifest validation tooling |
-| `tests/auth.test.ts` | Session signing and publisher-slug tests (`npm test`) |
+| `tests/auth.test.ts` / `tests/publisher-profile.test.ts` | Unit tests (`npm test`) |
 | `wrangler.toml` | Cloudflare Pages + D1 binding configuration |
 
 ## Local development
@@ -102,6 +107,26 @@ derived server-side and can never be supplied by the client.
 Register the callback URL on the GitHub OAuth app as
 `https://openrom-store.pages.dev/api/auth/callback` (and, for local development,
 `http://localhost:4321/api/auth/callback`).
+
+## Publisher profiles
+
+Every publisher has a public showcase page at `/publisher/<slug>` and an owner-only
+editor at `/dashboard/publisher/<slug>`. The owner can set a display name, a
+markdown bio, an avatar and banner image, and website / GitHub / Discord / Twitter
+links. All of these are validated server-side in `PATCH /api/publishers/[id]`:
+
+- Only the owner may edit (`owner_github_id` must match the session); `id`,
+  `verified`, and `owner_github_id` are never taken from the request body.
+- Social and image URLs must be absolute `http(s)` URLs, so `javascript:` and
+  `data:` values cannot reach an `href`/`src`.
+- The bio is rendered through the same markdown sanitizer as plugin READMEs.
+
+The profile page shows live aggregates (extension count and total downloads) that
+are summed in D1 at request time, and the publisher's extensions as the standard
+catalog cards. Plugins link to their publisher through `plugins.publisher_id`, and
+a plugin's name and verification are read from the `publishers` row via a `LEFT
+JOIN`, so renaming a publisher updates every card immediately. Rows that predate
+the link column fall back to matching on `publisher_name`.
 
 ## Provisioning the D1 database
 

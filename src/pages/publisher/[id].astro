@@ -1,0 +1,227 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Card from '../../components/Card.astro';
+import DetailDrawer from '../../components/DetailDrawer.astro';
+import Icon from '../../components/Icon.astro';
+import { getDB } from '../../lib/db';
+import { getPublisherProfile } from '../../lib/publisher-profile';
+import { getSessionUser } from '../../lib/auth';
+import { initialsFor, socialLinksFor } from '../../lib/site';
+import { renderMarkdown } from '../../lib/markdown';
+
+export const prerender = false;
+
+const id = Astro.params.id ?? '';
+const db = getDB(Astro.locals);
+const profile = await getPublisherProfile(db, id);
+
+if (!profile) {
+  return new Response(null, { status: 404 });
+}
+
+const { publisher, stats, plugins } = profile;
+
+const session = await getSessionUser(Astro);
+const isOwner = session?.githubId === publisher.ownerGithubId;
+
+const socials = socialLinksFor(publisher);
+const bioHtml = renderMarkdown(publisher.bio);
+const initials = initialsFor(publisher.name);
+const memberSince = publisher.createdAt?.slice(0, 10) ?? '';
+---
+
+<Layout
+  title={publisher.name}
+  description={publisher.bio || `Extensions published by ${publisher.name} on the OpenROM Marketplace.`}
+>
+  <article class="pb-20">
+    <!-- Cover banner -->
+    <header class="relative">
+      <div class="relative h-48 w-full overflow-hidden sm:h-64 lg:h-72">
+        {
+          publisher.bannerUrl ? (
+            <img
+              src={publisher.bannerUrl}
+              alt=""
+              class="h-full w-full object-cover"
+              referrerpolicy="no-referrer"
+            />
+          ) : (
+            <div class="aurora h-full w-full"></div>
+          )
+        }
+        <div
+          class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-zinc-950/10"
+          aria-hidden="true"
+        >
+        </div>
+        <div class="grid-lines pointer-events-none absolute inset-0" aria-hidden="true"></div>
+      </div>
+
+      <!-- Profile bar, overlapping the banner -->
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div
+          class="relative -mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between"
+        >
+          <div class="flex items-end gap-4">
+            {
+              publisher.avatarUrl ? (
+                <img
+                  src={publisher.avatarUrl}
+                  alt=""
+                  width="112"
+                  height="112"
+                  referrerpolicy="no-referrer"
+                  class="h-24 w-24 rounded-2xl object-cover ring-4 ring-zinc-950 sm:h-28 sm:w-28"
+                />
+              ) : (
+                <span class="grid h-24 w-24 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400/20 to-purple-500/20 text-2xl font-bold text-cyan-200 ring-4 ring-zinc-950 sm:h-28 sm:w-28">
+                  {initials}
+                </span>
+              )
+            }
+            <div class="min-w-0 pb-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h1 class="truncate text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                  {publisher.name}
+                </h1>
+                {
+                  publisher.verified && (
+                    <span
+                      class="inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 text-[0.7rem] font-medium text-cyan-300"
+                      title="This publisher's slug matches their GitHub username"
+                    >
+                      <span aria-hidden="true">💙</span>
+                      Verified
+                    </span>
+                  )
+                }
+              </div>
+              <p class="mt-1 font-mono text-sm text-zinc-400">@{publisher.id}</p>
+            </div>
+          </div>
+
+          {
+            isOwner && (
+              <a
+                href={`/dashboard/publisher/${publisher.id}`}
+                class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm font-medium text-zinc-200 transition hover:border-cyan-500/40 hover:text-cyan-300"
+              >
+                <Icon name="pencil" class="h-4 w-4" />
+                Edit profile
+              </a>
+            )
+          }
+        </div>
+
+        <!-- Bio + socials -->
+        {
+          (bioHtml || socials.length > 0) && (
+            <div class="mt-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              {bioHtml ? (
+                <div class="prose max-w-2xl" set:html={bioHtml} />
+              ) : (
+                <p class="max-w-2xl text-sm text-zinc-500">
+                  This publisher has not written a bio yet.
+                </p>
+              )}
+
+              {socials.length > 0 && (
+                <div class="flex flex-wrap gap-2 lg:justify-end">
+                  {socials.map((link) => (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-cyan-500/40 hover:text-cyan-300"
+                    >
+                      <Icon name={link.icon} class="h-3.5 w-3.5" />
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        }
+
+        <!-- Aggregate stats -->
+        <div class="mt-6 flex flex-wrap gap-3">
+          <div class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+            <span class="grid h-9 w-9 place-items-center rounded-lg bg-cyan-500/10 text-cyan-300">
+              <Icon name="layers" class="h-4 w-4" />
+            </span>
+            <div>
+              <p class="text-lg font-semibold leading-none text-white">{stats.totalPlugins}</p>
+              <p class="mt-1 text-xs text-zinc-500">Total extensions</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+            <span class="grid h-9 w-9 place-items-center rounded-lg bg-purple-500/10 text-purple-300">
+              <Icon name="download" class="h-4 w-4" />
+            </span>
+            <div>
+              <p class="text-lg font-semibold leading-none text-white">
+                {stats.totalDownloads.toLocaleString()}
+              </p>
+              <p class="mt-1 text-xs text-zinc-500">Total downloads</p>
+            </div>
+          </div>
+          {
+            memberSince && (
+              <div class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+                <span class="grid h-9 w-9 place-items-center rounded-lg bg-zinc-800 text-zinc-400">
+                  <Icon name="badge-check" class="h-4 w-4" />
+                </span>
+                <div>
+                  <p class="text-lg font-semibold leading-none text-white">{memberSince}</p>
+                  <p class="mt-1 text-xs text-zinc-500">Publisher since</p>
+                </div>
+              </div>
+            )
+          }
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto mt-12 max-w-6xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-5 flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold text-zinc-300">Extensions</h2>
+        <span class="text-xs text-zinc-600">
+          {plugins.length}
+          {plugins.length === 1 ? ' extension' : ' extensions'}
+        </span>
+      </div>
+
+      {
+        plugins.length === 0 ? (
+          <div class="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center">
+            <div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400/15 to-purple-500/15 text-cyan-300 ring-1 ring-inset ring-zinc-700/60">
+              <Icon name="inbox" class="h-6 w-6" />
+            </div>
+            <h3 class="mt-5 text-lg font-semibold text-white">No extensions published yet</h3>
+            <p class="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-400">
+              {publisher.name} has not published any extensions to the marketplace. Check back
+              soon.
+            </p>
+            <a
+              href="/"
+              class="mt-6 inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-800 px-4 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
+            >
+              <Icon name="arrow-left" class="h-4 w-4" />
+              Back to the marketplace
+            </a>
+          </div>
+        ) : (
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {plugins.map((plugin) => (
+              <Card plugin={plugin} />
+            ))}
+          </div>
+        )
+      }
+    </main>
+  </article>
+
+  <DetailDrawer plugins={plugins} />
+</Layout>
