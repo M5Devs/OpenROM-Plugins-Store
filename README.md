@@ -53,7 +53,7 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | `src/lib/auth.ts` | Session helpers shared by pages and API routes |
 | `src/lib/github.ts` | GitHub OAuth + user API client |
 | `src/lib/users.ts` / `src/lib/publishers.ts` | D1 access for accounts and publishers |
-| `src/lib/publisher-profile.ts` | Assembles a publisher with its stats and extensions |
+| `src/lib/publisher-profile.ts` | Assembles a publisher with its stats and extensions; `loadPublisherProfile` separates "not found" from a database error |
 | `src/lib/image.ts` | Image size/format validation + dimension parsing (shared) |
 | `src/lib/image-client.ts` | Browser-side downscale + WebP encoding for uploads |
 | `src/lib/media.ts` | Accepts an uploaded image data URL or an http(s) URL |
@@ -65,7 +65,7 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | `manifests/m/<publisher>/<plugin>/<version>/manifest.json` | Per-extension manifests |
 | `publishers/` | Publisher records |
 | `scripts/` | Manifest validation tooling |
-| `tests/auth.test.ts` / `tests/publisher-profile.test.ts` / `tests/user-profile.test.ts` | Unit tests (`npm test`) |
+| `tests/auth.test.ts` / `tests/publisher-profile.test.ts` / `tests/publisher-profile-page.test.ts` / `tests/user-profile.test.ts` | Unit tests (`npm test`) |
 | `wrangler.toml` | Cloudflare Pages + D1 binding configuration |
 
 ## Local development
@@ -177,6 +177,15 @@ npx wrangler d1 create openrom-store
 npm run db:migrate:remote
 npm run db:seed:remote
 ```
+
+> **Migrations are not applied by CI.** Nothing in `.github/workflows/` touches
+> the remote database, so after adding a migration you must run
+> `npm run db:migrate:remote` yourself. A table that a route reads but the remote
+> database does not have (for example `publishers` before migration 0002) makes
+> that route fail; the pages render a 503 fallback rather than a 500, but the
+> feature stays broken until the migration is applied. If a route suddenly
+> returns "temporarily unavailable", check `npx wrangler d1 migrations list
+> openrom-store --remote` first.
 
 ## Deploy to Cloudflare Pages
 

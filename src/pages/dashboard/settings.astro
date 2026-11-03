@@ -15,7 +15,21 @@ if (!session) {
   return Astro.redirect('/api/auth/login', 302);
 }
 
-const profile = await getUserProfile(getDB(Astro.locals), session);
+// The profile read is guarded so a D1 hiccup (or a missing migration) degrades to
+// the GitHub identity from the session instead of an unhandled 500.
+let profile;
+try {
+  profile = await getUserProfile(getDB(Astro.locals), session);
+} catch (error) {
+  console.error('Failed to load user profile for settings', error);
+  profile = {
+    githubId: session.githubId,
+    githubUsername: session.githubUsername,
+    name: session.name ?? session.githubUsername,
+    avatarUrl: session.avatarUrl ?? '',
+    customized: false,
+  };
+}
 const initials = initialsFor(profile.name);
 ---
 

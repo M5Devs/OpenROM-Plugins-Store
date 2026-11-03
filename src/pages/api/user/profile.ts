@@ -25,7 +25,13 @@ export const GET: APIRoute = async (context) => {
   const session = await getSessionUser(context);
   if (!session) return jsonResponse({ error: 'Authentication required.' }, 401);
 
-  const row = await getUserByGithubId(getDB(context.locals), session.githubId);
+  let row;
+  try {
+    row = await getUserByGithubId(getDB(context.locals), session.githubId);
+  } catch (error) {
+    console.error('Failed to read user profile', error);
+    return jsonResponse({ error: 'Your profile is temporarily unavailable.' }, 503);
+  }
   return jsonResponse({ profile: toUserProfile(session, row) });
 };
 
@@ -52,7 +58,13 @@ export const PATCH: APIRoute = async (context) => {
   }
 
   const db = getDB(context.locals);
-  const existing = await getUserByGithubId(db, session.githubId);
+  let existing;
+  try {
+    existing = await getUserByGithubId(db, session.githubId);
+  } catch (error) {
+    console.error('Failed to read user profile', error);
+    return jsonResponse({ error: 'Your profile is temporarily unavailable.' }, 503);
+  }
   if (!existing) {
     return jsonResponse({ error: 'Your account could not be found. Try signing in again.' }, 404);
   }

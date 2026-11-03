@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getDB } from '../../../lib/db';
 import { getSessionUser, jsonResponse } from '../../../lib/auth';
-import { getPublisherProfile } from '../../../lib/publisher-profile';
+import { loadPublisherProfile } from '../../../lib/publisher-profile';
 import { validateImageOrUrl } from '../../../lib/media';
 import { AVATAR_LIMITS, BANNER_LIMITS, type ImageLimits } from '../../../lib/image';
 import {
@@ -23,10 +23,18 @@ export const GET: APIRoute = async (context) => {
   const idError = validatePublisherId(id);
   if (idError) return jsonResponse({ error: idError }, 400);
 
-  const profile = await getPublisherProfile(getDB(context.locals), id);
-  if (!profile) return jsonResponse({ error: `Publisher "${id}" was not found.` }, 404);
+  // A failed read (missing table, unavailable binding) is a server error, not a
+  // missing publisher — report it as 503 rather than letting it surface as a 500.
+  const result = await loadPublisherProfile(getDB(context.locals), id);
+  if (result.status === 'error') {
+    console.error(`Failed to load publisher "${id}"`, result.error);
+    return jsonResponse({ error: 'The publisher directory is temporarily unavailable.' }, 503);
+  }
+  if (result.status === 'not-found') {
+    return jsonResponse({ error: `Publisher "${id}" was not found.` }, 404);
+  }
 
-  return jsonResponse(profile);
+  return jsonResponse(result.profile);
 };
 
 type EditableField = {
@@ -133,7 +141,13 @@ export const PATCH: APIRoute = async (context) => {
   }
 
   const db = getDB(context.locals);
-  const publisher = await getPublisher(db, id);
+  let publisher;
+  try {
+    publisher = await getPublisher(db, id);
+  } catch (error) {
+    console.error(`Failed to load publisher "${id}"`, error);
+    return jsonResponse({ error: 'The publisher directory is temporarily unavailable.' }, 503);
+  }
   if (!publisher) return jsonResponse({ error: `Publisher "${id}" was not found.` }, 404);
   if (publisher.ownerGithubId !== session.githubId) {
     return jsonResponse({ error: 'You do not own this publisher.' }, 403);
