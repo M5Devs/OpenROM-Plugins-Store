@@ -35,15 +35,26 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | Path | Purpose |
 | --- | --- |
 | `src/pages/index.astro` | Storefront (search, filters, cards, detail drawer) |
+| `src/pages/dashboard.astro` | Signed-in publisher dashboard (create + list publishers) |
 | `src/pages/api/plugins.json.ts` | Live catalog: `SELECT * FROM plugins` |
 | `src/pages/api/download/[id].ts` | Atomic download counter + redirect to the bundle |
+| `src/pages/api/auth/login.ts` | Redirects to GitHub OAuth with a `state` cookie |
+| `src/pages/api/auth/callback.ts` | Exchanges the code, upserts the user, issues the session cookie |
+| `src/pages/api/auth/logout.ts` | Clears the session cookie |
+| `src/pages/api/publishers/create.ts` | Creates a publisher owned by the signed-in user |
 | `src/components/` | `Navbar`, `Card`, `DetailDrawer`, `CategoryFilter`, `Icon` |
-| `src/lib/db.ts` | Typed D1 access layer |
-| `migrations/0001_init.sql` | D1 schema |
+| `src/lib/db.ts` | Typed D1 access layer for the catalog |
+| `src/lib/session.ts` | HMAC-signed session token (sign/verify) |
+| `src/lib/auth.ts` | Session helpers shared by pages and API routes |
+| `src/lib/github.ts` | GitHub OAuth + user API client |
+| `src/lib/users.ts` / `src/lib/publishers.ts` | D1 access for accounts and publishers |
+| `migrations/0001_init.sql` | D1 schema for the catalog |
+| `migrations/0002_auth_and_publishers.sql` | D1 schema for users + publishers |
 | `seed/0001_seed.sql` | Seed with the repository's real, verified extensions |
 | `manifests/m/<publisher>/<plugin>/<version>/manifest.json` | Per-extension manifests |
 | `publishers/` | Publisher records |
 | `scripts/` | Manifest validation tooling |
+| `tests/auth.test.ts` | Session signing and publisher-slug tests (`npm test`) |
 | `wrangler.toml` | Cloudflare Pages + D1 binding configuration |
 
 ## Local development
@@ -54,7 +65,12 @@ npm install
 # 1. Create the local D1 database, apply the schema, and load the seed data.
 npm run db:reset:local
 
-# 2. Start the dev server (emulates the D1 binding via platformProxy).
+# 2. Put the GitHub OAuth credentials + a session secret in .dev.vars (git-ignored):
+#    GITHUB_CLIENT_ID=...
+#    GITHUB_CLIENT_SECRET=...
+#    SESSION_SECRET=...   # falls back to GITHUB_CLIENT_SECRET when unset
+
+# 3. Start the dev server (emulates the D1 binding via platformProxy).
 npm run dev            # http://localhost:4321
 ```
 
@@ -62,11 +78,30 @@ Useful scripts:
 
 ```bash
 npm run build                 # production build to dist/
+npm test                      # session + publisher unit tests
 npm run db:migrate:local      # apply migrations locally
 npm run db:seed:local         # (re)load seed data
 python scripts/validate_plugin.py   # validate manifests
 python -m unittest discover tests   # security test suite
 ```
+
+## Authentication
+
+Sign-in uses GitHub OAuth (`scope=read:user`). The callback exchanges the code for
+an access token, reads `https://api.github.com/user`, upserts the account into the
+`users` table, and issues a **stateless, HMAC-SHA256-signed** session cookie
+(`openrom_session`, HttpOnly, `SameSite=Lax`, `Secure` on HTTPS, 30-day lifetime).
+The token payload is the public GitHub profile — it carries no secret, so the HMAC
+signature is what makes it tamper-proof.
+
+Publisher slugs are validated as lowercase alphanumeric words joined by single
+hyphens. A slug that matches the owner's GitHub username (case-insensitively) is
+**auto-verified** (`verified = 1`); every other slug is unverified. `verified` is
+derived server-side and can never be supplied by the client.
+
+Register the callback URL on the GitHub OAuth app as
+`https://openrom-store.pages.dev/api/auth/callback` (and, for local development,
+`http://localhost:4321/api/auth/callback`).
 
 ## Provisioning the D1 database
 
@@ -89,6 +124,8 @@ Create a Pages project for this repository and set:
   `wrangler.toml` needs V2; see the [Pages Wrangler configuration docs](https://developers.cloudflare.com/pages/functions/wrangler-configuration/))
 - **Compatibility flags:** `nodejs_compat`
 - **D1 binding:** variable `DB` → the `openrom-store` database
+- **Environment variables (encrypted):** `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`,
+  and (recommended) `SESSION_SECRET` for signing session cookies
 
 > Upgrading an existing project that was a no-build static site (as this one was)
 > requires setting the build command and switching the project to the V2 build
