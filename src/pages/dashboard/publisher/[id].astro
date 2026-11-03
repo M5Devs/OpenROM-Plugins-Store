@@ -1,10 +1,17 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
 import Icon from '../../../components/Icon.astro';
+import ImageField from '../../../components/ImageField.astro';
 import { getSessionUser } from '../../../lib/auth';
 import { getDB } from '../../../lib/db';
 import { getPublisher } from '../../../lib/publishers';
 import { initialsFor } from '../../../lib/site';
+import {
+  AVATAR_MAX_DIMENSION,
+  BANNER_MAX_DIMENSION,
+  AVATAR_QUALITY,
+  BANNER_QUALITY,
+} from '../../../lib/image';
 
 export const prerender = false;
 
@@ -25,55 +32,30 @@ if (publisher.ownerGithubId !== session.githubId) {
 
 const initials = initialsFor(publisher.name);
 
-const fields = [
-  {
-    name: 'name',
-    label: 'Display name',
-    value: publisher.name,
-    placeholder: 'Your name or studio',
-    type: 'text',
-  },
-  {
-    name: 'avatarUrl',
-    label: 'Avatar image URL',
-    value: publisher.avatarUrl,
-    placeholder: 'https://…/avatar.png',
-    type: 'url',
-  },
-  {
-    name: 'bannerUrl',
-    label: 'Banner image URL',
-    value: publisher.bannerUrl,
-    placeholder: 'https://…/banner.png',
-    type: 'url',
-  },
+const socialFields = [
   {
     name: 'websiteUrl',
     label: 'Website',
     value: publisher.websiteUrl,
     placeholder: 'https://example.com',
-    type: 'url',
   },
   {
     name: 'githubUrl',
     label: 'GitHub',
     value: publisher.githubUrl,
     placeholder: 'https://github.com/you',
-    type: 'url',
   },
   {
     name: 'discordUrl',
     label: 'Discord invite',
     value: publisher.discordUrl,
     placeholder: 'https://discord.gg/…',
-    type: 'url',
   },
   {
     name: 'twitterUrl',
     label: 'Twitter / X',
     value: publisher.twitterUrl,
     placeholder: 'https://x.com/you',
-    type: 'url',
   },
 ];
 ---
@@ -135,15 +117,15 @@ const fields = [
         <h2 class="text-sm font-semibold text-zinc-200">Identity</h2>
         <div class="mt-4 flex flex-col gap-4">
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-zinc-400">{fields[0].label}</span>
+            <span class="text-xs font-medium text-zinc-400">Display name</span>
             <input
-              name={fields[0].name}
+              name="name"
               type="text"
               required
               minlength="2"
               maxlength="80"
-              value={fields[0].value}
-              placeholder={fields[0].placeholder}
+              value={publisher.name}
+              placeholder="Your name or studio"
               class="h-10 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
             />
           </label>
@@ -166,21 +148,31 @@ const fields = [
 
       <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
         <h2 class="text-sm font-semibold text-zinc-200">Branding</h2>
-        <div class="mt-4 grid gap-4 sm:grid-cols-2">
-          {
-            fields.slice(1, 3).map((field) => (
-              <label class="flex flex-col gap-1.5">
-                <span class="text-xs font-medium text-zinc-400">{field.label}</span>
-                <input
-                  name={field.name}
-                  type={field.type}
-                  value={field.value}
-                  placeholder={field.placeholder}
-                  class="h-10 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
-                />
-              </label>
-            ))
-          }
+        <p class="mt-1 text-xs leading-relaxed text-zinc-500">
+          Upload an image and it is resized and converted to WebP in your browser before it is
+          saved — the preview is exactly what gets stored.
+        </p>
+        <div class="mt-5 flex flex-col gap-6">
+          <ImageField
+            name="avatarUrl"
+            label="Avatar / logo"
+            value={publisher.avatarUrl}
+            variant="avatar"
+            maxDimension={AVATAR_MAX_DIMENSION}
+            quality={AVATAR_QUALITY}
+            initials={initials}
+            hint="PNG, JPEG, or WebP. Square images look best."
+          />
+          <ImageField
+            name="bannerUrl"
+            label="Cover banner"
+            value={publisher.bannerUrl}
+            variant="banner"
+            maxDimension={BANNER_MAX_DIMENSION}
+            quality={BANNER_QUALITY}
+            urlPlaceholder="https://…/banner.png"
+            hint="A wide image, roughly 4:1, works best as a cover."
+          />
         </div>
       </section>
 
@@ -188,12 +180,12 @@ const fields = [
         <h2 class="text-sm font-semibold text-zinc-200">Social links</h2>
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
           {
-            fields.slice(3).map((field) => (
+            socialFields.map((field) => (
               <label class="flex flex-col gap-1.5">
                 <span class="text-xs font-medium text-zinc-400">{field.label}</span>
                 <input
                   name={field.name}
-                  type={field.type}
+                  type="url"
                   value={field.value}
                   placeholder={field.placeholder}
                   class="h-10 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"

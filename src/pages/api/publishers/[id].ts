@@ -2,6 +2,8 @@ import type { APIRoute } from 'astro';
 import { getDB } from '../../../lib/db';
 import { getSessionUser, jsonResponse } from '../../../lib/auth';
 import { getPublisherProfile } from '../../../lib/publisher-profile';
+import { validateImageOrUrl } from '../../../lib/media';
+import { AVATAR_LIMITS, BANNER_LIMITS, type ImageLimits } from '../../../lib/image';
 import {
   getPublisher,
   updatePublisherProfile,
@@ -33,9 +35,18 @@ type EditableField = {
   apply: (value: unknown, draft: PublisherProfileInput) => string | null;
 };
 
+/**
+ * Media fields accept either an uploaded image (a data URL from the client
+ * optimizer) or a plain URL, so they get the stricter image-aware validator with
+ * per-field dimension limits; the social links are URL-only.
+ */
+const MEDIA_FIELDS: Array<{ key: keyof PublisherProfileInput; label: string; limits: ImageLimits }> =
+  [
+    { key: 'avatarUrl', label: 'Avatar', limits: AVATAR_LIMITS },
+    { key: 'bannerUrl', label: 'Banner', limits: BANNER_LIMITS },
+  ];
+
 const URL_FIELDS: Array<{ key: keyof PublisherProfileInput; label: string }> = [
-  { key: 'avatarUrl', label: 'Avatar URL' },
-  { key: 'bannerUrl', label: 'Banner URL' },
   { key: 'websiteUrl', label: 'Website' },
   { key: 'githubUrl', label: 'GitHub URL' },
   { key: 'discordUrl', label: 'Discord URL' },
@@ -61,6 +72,17 @@ const EDITABLE_FIELDS: EditableField[] = [
       return null;
     },
   },
+  ...MEDIA_FIELDS.map(
+    ({ key, label, limits }): EditableField => ({
+      key,
+      apply: (value, draft) => {
+        const error = validateImageOrUrl(value, label, limits);
+        if (error) return error;
+        draft[key] = (value as string).trim() as never;
+        return null;
+      },
+    }),
+  ),
   ...URL_FIELDS.map(
     ({ key, label }): EditableField => ({
       key,

@@ -1,9 +1,14 @@
 ---
 import { SITE } from '../lib/site';
-import type { SessionUser } from '../lib/session';
+
+interface NavbarUser {
+  githubUsername: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
 
 interface Props {
-  user?: SessionUser | null;
+  user?: NavbarUser | null;
 }
 
 const { user = null } = Astro.props;
@@ -118,6 +123,13 @@ const { user = null } = Astro.props;
                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
                 >
                   My Publishers / Dashboard
+                </a>
+                <a
+                  href="/dashboard/settings"
+                  role="menuitem"
+                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                >
+                  Account settings
                 </a>
                 <form method="POST" action="/api/auth/logout">
                   <button

@@ -3,6 +3,8 @@ import '../styles/global.css';
 import Navbar from '../components/Navbar.astro';
 import { SITE } from '../lib/site';
 import { getSessionUser } from '../lib/auth';
+import { getDB } from '../lib/db';
+import { getUserProfile, type UserProfile } from '../lib/users';
 
 interface Props {
   title?: string;
@@ -13,16 +15,23 @@ const { title = SITE.name, description = SITE.description } = Astro.props;
 const fullTitle = title === SITE.name ? SITE.name : `${title} · ${SITE.name}`;
 
 // The session cookie is HttpOnly, so the signed-in state is resolved here on the
-// server and handed to the navbar as a prop.
+// server and handed to the navbar as a prop. The custom avatar lives in D1 (it can
+// be a data URL far larger than the cookie limit), so it is overlaid on the session.
 const session = await getSessionUser(Astro);
-const user = session
-  ? {
+let user: Pick<UserProfile, 'githubId' | 'githubUsername' | 'name' | 'avatarUrl'> | null = null;
+if (session) {
+  try {
+    user = await getUserProfile(getDB(Astro.locals), session);
+  } catch {
+    // A database hiccup must not take down the whole page; fall back to the session.
+    user = {
       githubId: session.githubId,
       githubUsername: session.githubUsername,
       name: session.name,
-      avatarUrl: session.avatarUrl,
-    }
-  : null;
+      avatarUrl: session.avatarUrl ?? '',
+    };
+  }
+}
 ---
 
 <!doctype html>

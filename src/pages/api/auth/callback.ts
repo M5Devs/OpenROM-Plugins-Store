@@ -6,7 +6,7 @@ import {
   getGitHubCredentials,
 } from '../../../lib/github';
 import { getDB } from '../../../lib/db';
-import { upsertUser } from '../../../lib/users';
+import { upsertUser, sessionUserFromGitHubProfile } from '../../../lib/users';
 import { createSessionToken } from '../../../lib/session';
 import { setSessionCookie } from '../../../lib/auth';
 
@@ -55,23 +55,14 @@ export const GET: APIRoute = async (context) => {
     return fail('Could not read your GitHub profile.', 502);
   }
 
-  let user;
   try {
-    user = await upsertUser(getDB(locals), profile);
+    await upsertUser(getDB(locals), profile);
   } catch (error) {
     console.error('Failed to persist GitHub user', error);
     return fail('Could not save your account.', 500);
   }
 
-  const token = await createSessionToken(
-    {
-      githubId: user.github_id,
-      githubUsername: user.github_username,
-      name: user.name,
-      avatarUrl: user.avatar_url,
-    },
-    locals.runtime?.env,
-  );
+  const token = await createSessionToken(sessionUserFromGitHubProfile(profile), locals.runtime?.env);
   if (!token) {
     return fail('Session signing is not configured on this deployment.', 500);
   }
