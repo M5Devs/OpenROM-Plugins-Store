@@ -49,13 +49,10 @@ def validate_manifest(file_path: Path) -> bool:
 
     author_id = data.get("publisher_id") or data.get("author")
     if author_id and isinstance(author_id, str):
-        publisher_path = Path("publishers") / f"{author_id}.json"
-        if not publisher_path.exists():
-            print(f"❌ Error in {file_path}: Author/Publisher '{author_id}' record not found at {publisher_path}.")
-            is_valid = False
-
-        # Security check 2: Ensure the manifest's publisher_id/author matches the directory path (manifests/<letter>/<publisher_id>/)
-        # Expected relative path format: manifests/<letter>/<publisher_id>/<plugin_id>/<version>/manifest.json
+        # Security check 2: the manifest's publisher_id/author must match the directory
+        # path, i.e. manifests/<letter>/<publisher_id>/<plugin_id>/<version>/manifest.json.
+        # Publisher ownership and verification live in the D1 publishers table, so there
+        # is no static record to look up here.
         parts = file_path.parts
         # Looking for 'manifests' in path parts
         if "manifests" in parts:

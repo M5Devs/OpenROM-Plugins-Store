@@ -39,26 +39,17 @@ Paste the 64-character lowercase hex digest into the manifest's `sha256` field.
 
 ## 3. Register as a publisher
 
-Create `publishers/<publisher-id>.json` (use a short, lowercase, hyphenated id —
-this is the same id you will use in your manifest):
+Sign in with GitHub and create your publisher profile from `/dashboard`. Publishers
+live in the D1 `publishers` table, so there is no publisher file to commit.
 
-```json
-{
-  "id": "your-publisher-id",
-  "name": "Your Display Name",
-  "github_username": "your-github-handle",
-  "github": "https://github.com/your-org",
-  "avatar_url": "https://github.com/your-github-handle.png",
-  "bio": "One sentence about you or your team.",
-  "is_verified": false,
-  "badge": null
-}
-```
+Use a short, lowercase, hyphenated id — the same id you will use in your manifest.
+If it matches your GitHub username (case-insensitive) it is verified automatically;
+otherwise a maintainer reviews it.
 
-> **Verification is granted by maintainers, never self-declared.** The
-> authoritative list is `verified_publishers.json`, which only maintainers edit.
-> Any `is_verified` / `verified` value in your publisher file or manifest is
-> ignored, and claiming verification in a manifest fails validation.
+> **Verification is granted by maintainers, never self-declared.** Verification is
+> the `verified` column in D1, which only maintainers can set. Any `is_verified` /
+> `verified` value in your manifest is ignored, and claiming verification in a
+> manifest fails validation.
 
 ## 4. Add your extension manifest
 
@@ -101,7 +92,7 @@ the manifest's `publisher_id`, or validation fails.
 | `name` | yes | Display name on the storefront |
 | `version` | yes | Semantic version, e.g. `1.0.0` |
 | `author` | yes | Human-readable author name |
-| `publisher_id` | yes | Must match the `publishers/` id **and** the manifest path |
+| `publisher_id` | yes | Must match the manifest's directory path **and** a publisher in D1 |
 | `description` | yes | Short summary shown on the card |
 | `download_url` | yes | Absolute `https://` URL to your SourceForge `.orplug` |
 | `sha256` | yes | Lowercase hex digest of the uploaded bundle |

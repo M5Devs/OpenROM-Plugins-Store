@@ -1,8 +1,9 @@
 -- Seed — only real, verified extensions already present in this repository.
 --
 -- Provenance:
---   * publishers/clausvalca.json is the single registered publisher and the only id
---     listed in verified_publishers.json, so publisher_verified = 1 is real.
+--   * The `publishers` row below is the single registered publisher. It is seeded
+--     directly (not read from a file) with `verified = 1`; publisher records live in
+--     D1, not in this repository.
 --   * The three rows mirror manifests/m/clausvalca/**/manifest.json (real metadata).
 --   * downloads is 0 and sha256 is '' because no `.orplug` bundle has been published
 --     yet (SourceForge `openrom-binaries` currently ships raw binaries only, and the

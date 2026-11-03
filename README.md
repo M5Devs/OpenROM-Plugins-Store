@@ -62,9 +62,8 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | `migrations/0003_publisher_profiles.sql` | Publisher profile fields + `plugins.publisher_id` |
 | `migrations/0004_user_profiles.sql` | `users.profile_customized` flag |
 | `seed/0001_seed.sql` | Seed with the repository's real, verified extensions |
-| `manifests/m/<publisher>/<plugin>/<version>/manifest.json` | Per-extension manifests |
-| `publishers/` | Publisher records |
-| `scripts/` | Manifest validation tooling |
+| `manifests/m/<publisher>/<plugin>/<version>/manifest.json` | Per-extension manifests (metadata only) |
+| `scripts/` | Manifest validation tooling (`validate_plugin.py`) |
 | `tests/auth.test.ts` / `tests/publisher-profile.test.ts` / `tests/publisher-profile-page.test.ts` / `tests/user-profile.test.ts` | Unit tests (`npm test`) |
 | `wrangler.toml` | Cloudflare Pages + D1 binding configuration |
 
@@ -216,7 +215,9 @@ npx wrangler pages deploy dist --project-name openrom-store
 ## Publishing an extension
 
 1. Add `manifests/m/<publisher-id>/<plugin-id>/<version>/manifest.json`.
-2. Ensure a matching record exists at `publishers/<publisher-id>.json`.
+2. Register the publisher through the site (`/dashboard` → sign in with GitHub).
+   Publishers live in the D1 `publishers` table, not in this repository; the
+   publisher id must match the manifest's `publisher_id` and directory path.
 3. Open a pull request. CI validates the manifests and builds the site.
 4. Once the `.orplug` bundle is published, a maintainer inserts the row (with its
    real SHA-256) into D1 so the extension appears in the marketplace.
