@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 
 import {
   MAX_IMAGE_BYTES,
+  base64PayloadBytes,
   imageDimensions,
   validateImageDataUrl,
   AVATAR_LIMITS,
   BANNER_LIMITS,
 } from '../src/lib/image.ts';
 import { validateImageOrUrl } from '../src/lib/media.ts';
-import { toUserProfile, type UserRow } from '../src/lib/users.ts';
+import { toUserProfile, sessionUserFromGitHubProfile, type UserRow } from '../src/lib/users.ts';
 
 // --- Image fixtures ---------------------------------------------------------
 
@@ -91,6 +92,14 @@ test('rejects images over the byte cap', () => {
   assert.match(String(error), /too large/i);
 });
 
+test('bounds the encoded string, not just the decoded bytes', () => {
+  // A tiny base64 payload padded with whitespace passes the decoded-bytes check
+  // (base64PayloadBytes strips whitespace) but still inflates the stored row.
+  const value = `data:image/webp;base64,${'A'.repeat(8)}${'\n'.repeat(900_000)}`;
+  assert.ok(base64PayloadBytes(value)! <= MAX_IMAGE_BYTES);
+  assert.match(String(validateImageDataUrl(value, 'Avatar', AVATAR_LIMITS)), /too large/i);
+});
+
 test('enforces per-field dimension limits', () => {
   const wide = toDataUrl(webpVp8x(1200, 400), 'image/webp');
   assert.equal(validateImageDataUrl(wide, 'Banner', BANNER_LIMITS), null);
@@ -163,5 +172,34 @@ test('an empty custom value falls back to GitHub rather than showing blank', () 
 test('falls back to the username when no name is available anywhere', () => {
   const profile = toUserProfile({ ...SESSION, name: null, avatarUrl: null }, null);
   assert.equal(profile.name, 'octocat');
+  assert.equal(profile.avatarUrl, '');
+});
+
+// --- Session cookie safety --------------------------------------------------
+
+test('the session identity comes from GitHub, never from the stored row', () => {
+  // `upsertUser` returns the stored row, which may hold a multi-megabyte avatar
+  // data URL. The cookie must not inherit it, or the browser rejects the cookie.
+  const identity = sessionUserFromGitHubProfile({
+    id: 42,
+    login: 'octocat',
+    name: 'The Octocat',
+    avatar_url: 'https://avatars.githubusercontent.com/u/42',
+  });
+  assert.deepEqual(identity, {
+    githubId: '42',
+    githubUsername: 'octocat',
+    name: 'The Octocat',
+    avatarUrl: 'https://avatars.githubusercontent.com/u/42',
+  });
+});
+
+test('a missing GitHub name/avatar stays null so the render-time fallback applies', () => {
+  const identity = sessionUserFromGitHubProfile({ id: '7', login: 'anon', name: null, avatar_url: null });
+  assert.equal(identity.name, null);
+  assert.equal(identity.avatarUrl, null);
+  // With no custom profile the overlay still resolves to a usable identity.
+  const profile = toUserProfile(identity, null);
+  assert.equal(profile.name, 'anon');
   assert.equal(profile.avatarUrl, '');
 });

@@ -12,11 +12,16 @@ export const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as 
 export type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
 
 /**
- * Hard cap on an uploaded image. Well under D1's 2 MB per-row limit so a row with
- * both a publisher avatar and a banner stays comfortably within it, and small
- * enough that the images stay cheap to store and fast to serve inline.
+ * Hard cap on the decoded size of an uploaded image.
+ *
+ * D1 caps a row at 2 MB, and what is stored is the *base64 text* of the data URL,
+ * which is about 4/3 the decoded size. A publisher row can hold both an avatar and a
+ * banner, so the two encoded strings together must fit — hence 600 KB decoded
+ * (≈800 KB encoded each, ≈1.6 MB for the pair) leaves headroom. The same budget is
+ * enforced against the encoded string itself, so a value that arrives without going
+ * through the client optimizer cannot slip past.
  */
-export const MAX_IMAGE_BYTES = 1_500_000;
+export const MAX_IMAGE_BYTES = 600_000;
 
 export const AVATAR_MAX_DIMENSION = 512;
 export const BANNER_MAX_DIMENSION = 1600;
@@ -26,16 +31,27 @@ export const AVATAR_QUALITY = 0.85;
 export const BANNER_QUALITY = 0.82;
 
 export interface ImageLimits {
+  /** Cap on the decoded image bytes. */
   maxBytes: number;
+  /** Cap on the encoded `data:` URL string, which is what D1 stores. */
+  maxEncodedBytes: number;
   maxDimension: number;
 }
 
+/**
+ * Encoded-string budget. A publisher row holds an avatar and a banner, so two of
+ * these (≈1.6 MB) stay under D1's 2 MB per-row limit with room for the other columns.
+ */
+export const MAX_ENCODED_BYTES = 800_000;
+
 export const AVATAR_LIMITS: ImageLimits = {
   maxBytes: MAX_IMAGE_BYTES,
+  maxEncodedBytes: MAX_ENCODED_BYTES,
   maxDimension: AVATAR_MAX_DIMENSION,
 };
 export const BANNER_LIMITS: ImageLimits = {
   maxBytes: MAX_IMAGE_BYTES,
+  maxEncodedBytes: MAX_ENCODED_BYTES,
   maxDimension: BANNER_MAX_DIMENSION,
 };
 
@@ -216,6 +232,14 @@ export function validateImageDataUrl(
   const match = /^data:(image\/[a-z0-9.+-]+);base64,/i.exec(value);
   if (!match) {
     return `${label} must be a base64 data URL (PNG, JPEG, or WebP).`;
+  }
+
+  // The encoded string is what lands in D1. `base64PayloadBytes` strips whitespace,
+  // so this catches a value that inflates the stored row without inflating its
+  // decoded size — the decoded-bytes check alone would miss it.
+  const encodedBytes = value.length;
+  if (encodedBytes > limits.maxEncodedBytes) {
+    return `${label} is too large — the limit is ${Math.round(limits.maxEncodedBytes / 1000)} KB.`;
   }
 
   const declared = match[1].toLowerCase();

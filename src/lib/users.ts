@@ -113,6 +113,29 @@ export async function upsertUser(db: D1Database, profile: GitHubProfile): Promis
   return row;
 }
 
+/**
+ * The session cookie carries the *GitHub* identity only.
+ *
+ * An uploaded avatar is far larger than the ~4 KB cookie limit, so custom profile
+ * values live in D1 and are overlaid at render time by `toUserProfile`. Building the
+ * cookie from the GitHub profile — never from the stored row, which may hold a
+ * multi-megabyte data URL — keeps the cookie small and keeps the GitHub fallback
+ * intact for a user who has cleared their custom avatar.
+ */
+export function sessionUserFromGitHubProfile(profile: GitHubProfile): {
+  githubId: string;
+  githubUsername: string;
+  name: string | null;
+  avatarUrl: string | null;
+} {
+  return {
+    githubId: String(profile.id),
+    githubUsername: profile.login,
+    name: profile.name ?? null,
+    avatarUrl: profile.avatar_url ?? null,
+  };
+}
+
 export async function getUserByGithubId(
   db: D1Database,
   githubId: string,

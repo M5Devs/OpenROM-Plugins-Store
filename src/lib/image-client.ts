@@ -12,7 +12,7 @@
 
 import {
   ALLOWED_IMAGE_TYPES,
-  MAX_IMAGE_BYTES,
+  MAX_ENCODED_BYTES,
   base64PayloadBytes,
   type AllowedImageType,
 } from './image';
@@ -25,7 +25,7 @@ export class ImageUploadError extends Error {}
 export interface OptimizeOptions {
   maxDimension?: number;
   quality?: number;
-  maxBytes?: number;
+  maxEncodedBytes?: number;
 }
 
 type Drawable = ImageBitmap | HTMLImageElement;
@@ -74,7 +74,7 @@ function release(source: Drawable): void {
 export async function optimizeImageFile(file: File, options: OptimizeOptions = {}): Promise<string> {
   const maxDimension = options.maxDimension ?? 512;
   const quality = options.quality ?? 0.85;
-  const maxBytes = options.maxBytes ?? MAX_IMAGE_BYTES;
+  const maxEncodedBytes = options.maxEncodedBytes ?? MAX_ENCODED_BYTES;
 
   if (!ALLOWED_IMAGE_TYPES.includes(file.type as AllowedImageType)) {
     throw new ImageUploadError('Choose a PNG, JPEG, or WebP image.');
@@ -96,12 +96,11 @@ export async function optimizeImageFile(file: File, options: OptimizeOptions = {
       const width = Math.max(1, Math.round(sourceWidth * scale));
       const height = Math.max(1, Math.round(sourceHeight * scale));
       const dataUrl = encode(source, width, height, quality);
-      const bytes = base64PayloadBytes(dataUrl) ?? Number.POSITIVE_INFINITY;
-      if (bytes <= maxBytes) return dataUrl;
+      if (dataUrl.length <= maxEncodedBytes) return dataUrl;
       scale *= 0.75;
     }
     throw new ImageUploadError(
-      `Could not shrink that image under ${formatBytes(maxBytes)}. Try a simpler image.`,
+      `Could not shrink that image under ${formatBytes(maxEncodedBytes)}. Try a simpler image.`,
     );
   } finally {
     release(source);
