@@ -24,12 +24,23 @@ export type PublisherProfileResult =
   | { status: 'not-found' }
   | { status: 'error'; error: unknown };
 
+/**
+ * Accepts the binding directly or as a getter. Prefer the getter: resolving the
+ * binding can itself throw when `DB` is not configured, and only a getter lets that
+ * happen inside the `try` below.
+ */
+type DatabaseSource = D1Database | (() => D1Database);
+
+function resolveDb(source: DatabaseSource): D1Database {
+  return typeof source === 'function' ? source() : source;
+}
+
 export async function loadPublisherProfile(
-  db: D1Database,
+  source: DatabaseSource,
   id: string,
 ): Promise<PublisherProfileResult> {
   try {
-    const profile = await getPublisherProfile(db, id);
+    const profile = await getPublisherProfile(resolveDb(source), id);
     return profile ? { status: 'ok', profile } : { status: 'not-found' };
   } catch (error) {
     return { status: 'error', error };

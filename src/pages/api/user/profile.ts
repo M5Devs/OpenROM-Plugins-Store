@@ -57,9 +57,10 @@ export const PATCH: APIRoute = async (context) => {
     return jsonResponse({ error: 'Expected a JSON object.' }, 400);
   }
 
-  const db = getDB(context.locals);
+  let db: D1Database;
   let existing;
   try {
+    db = getDB(context.locals);
     existing = await getUserByGithubId(db, session.githubId);
   } catch (error) {
     console.error('Failed to read user profile', error);

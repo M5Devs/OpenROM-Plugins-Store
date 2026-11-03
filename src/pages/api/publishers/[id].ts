@@ -25,7 +25,7 @@ export const GET: APIRoute = async (context) => {
 
   // A failed read (missing table, unavailable binding) is a server error, not a
   // missing publisher — report it as 503 rather than letting it surface as a 500.
-  const result = await loadPublisherProfile(getDB(context.locals), id);
+  const result = await loadPublisherProfile(() => getDB(context.locals), id);
   if (result.status === 'error') {
     console.error(`Failed to load publisher "${id}"`, result.error);
     return jsonResponse({ error: 'The publisher directory is temporarily unavailable.' }, 503);
@@ -140,9 +140,10 @@ export const PATCH: APIRoute = async (context) => {
     return jsonResponse({ error: 'Expected a JSON object.' }, 400);
   }
 
-  const db = getDB(context.locals);
+  let db: D1Database;
   let publisher;
   try {
+    db = getDB(context.locals);
     publisher = await getPublisher(db, id);
   } catch (error) {
     console.error(`Failed to load publisher "${id}"`, error);

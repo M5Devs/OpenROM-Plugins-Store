@@ -17,7 +17,7 @@ const id = Astro.params.id ?? '';
 // migration has not been applied, or the binding may be unavailable. That is a
 // server problem, not a missing publisher, so it must not surface as an unhandled
 // 500 (which is what happens when this call is left unguarded).
-const result = await loadPublisherProfile(getDB(Astro.locals), id);
+const result = await loadPublisherProfile(() => getDB(Astro.locals), id);
 if (result.status === 'error') {
   console.error(`Failed to load publisher "${id}"`, result.error);
   Astro.response.status = 503;

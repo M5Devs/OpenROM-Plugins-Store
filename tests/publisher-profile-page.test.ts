@@ -94,6 +94,20 @@ test('reports a database failure instead of throwing (the 500 regression)', asyn
   assert.equal(result.status, 'error');
 });
 
+test('a binding that cannot be resolved at all is reported, not thrown', async () => {
+  // `getDB()` throws when the DB binding is missing. Passing a getter keeps that
+  // throw inside the guarded boundary; passing a resolved value would not.
+  const result = await loadPublisherProfile(() => {
+    throw new Error('D1 binding "DB" is unavailable.');
+  }, 'clausvalca');
+  assert.equal(result.status, 'error');
+});
+
+test('accepts a plain binding as well as a getter', async () => {
+  const result = await loadPublisherProfile(fakeDb(), 'clausvalca');
+  assert.equal(result.status, 'ok');
+});
+
 test('reports a missing publisher distinctly from a database failure', async () => {
   const result = await loadPublisherProfile(fakeDb({ publisherRow: null }), 'nobody');
   assert.equal(result.status, 'not-found');
