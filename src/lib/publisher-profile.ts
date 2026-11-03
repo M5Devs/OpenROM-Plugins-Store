@@ -4,13 +4,47 @@
  * both always agree on the numbers.
  */
 
-import { getPublisherStats, listPluginsByPublisher, type Plugin, type PublisherStats } from './db';
-import { getPublisher, type Publisher } from './publishers';
+import { getPublisherStats, listPluginsByPublisher, type Plugin, type PublisherStats } from './db.ts';
+import { getPublisher, type Publisher } from './publishers.ts';
 
 export interface PublisherProfile {
   publisher: Publisher;
   stats: PublisherStats;
   plugins: Plugin[];
+}
+
+/**
+ * Outcome of loading a profile, so callers can tell the two failure modes apart:
+ * a publisher that does not exist (render a 404) versus a database read that threw
+ * (render a 503). Collapsing these into `null` is what made a missing `publishers`
+ * table — an unapplied migration — surface as an unhandled 500.
+ */
+export type PublisherProfileResult =
+  | { status: 'ok'; profile: PublisherProfile }
+  | { status: 'not-found' }
+  | { status: 'error'; error: unknown };
+
+/**
+ * Accepts the binding directly or as a getter. Prefer the getter: resolving the
+ * binding can itself throw when `DB` is not configured, and only a getter lets that
+ * happen inside the `try` below.
+ */
+type DatabaseSource = D1Database | (() => D1Database);
+
+function resolveDb(source: DatabaseSource): D1Database {
+  return typeof source === 'function' ? source() : source;
+}
+
+export async function loadPublisherProfile(
+  source: DatabaseSource,
+  id: string,
+): Promise<PublisherProfileResult> {
+  try {
+    const profile = await getPublisherProfile(resolveDb(source), id);
+    return profile ? { status: 'ok', profile } : { status: 'not-found' };
+  } catch (error) {
+    return { status: 'error', error };
+  }
 }
 
 export async function getPublisherProfile(

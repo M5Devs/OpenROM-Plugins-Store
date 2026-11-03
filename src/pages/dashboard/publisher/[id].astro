@@ -21,8 +21,20 @@ if (!session) {
 }
 
 const id = Astro.params.id ?? '';
-const publisher = await getPublisher(getDB(Astro.locals), id);
+// Guard the read: a missing migration or unavailable binding would otherwise throw
+// and take the whole page down as an unhandled 500.
+let publisher = null;
+let dbError = false;
+try {
+  publisher = await getPublisher(getDB(Astro.locals), id);
+} catch (error) {
+  console.error(`Failed to load publisher "${id}" for editing`, error);
+  dbError = true;
+}
 
+if (dbError) {
+  return new Response('Publisher editing is temporarily unavailable.', { status: 503 });
+}
 if (!publisher) {
   return new Response(null, { status: 404 });
 }

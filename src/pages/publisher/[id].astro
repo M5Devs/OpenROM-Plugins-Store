@@ -4,7 +4,7 @@ import Card from '../../components/Card.astro';
 import DetailDrawer from '../../components/DetailDrawer.astro';
 import Icon from '../../components/Icon.astro';
 import { getDB } from '../../lib/db';
-import { getPublisherProfile } from '../../lib/publisher-profile';
+import { loadPublisherProfile } from '../../lib/publisher-profile';
 import { getSessionUser } from '../../lib/auth';
 import { initialsFor, socialLinksFor } from '../../lib/site';
 import { renderMarkdown } from '../../lib/markdown';
@@ -12,28 +12,73 @@ import { renderMarkdown } from '../../lib/markdown';
 export const prerender = false;
 
 const id = Astro.params.id ?? '';
-const db = getDB(Astro.locals);
-const profile = await getPublisherProfile(db, id);
 
-if (!profile) {
-  return new Response(null, { status: 404 });
+// A D1 read can fail outright — the `publishers` table may be missing because a
+// migration has not been applied, or the binding may be unavailable. That is a
+// server problem, not a missing publisher, so it must not surface as an unhandled
+// 500 (which is what happens when this call is left unguarded).
+const result = await loadPublisherProfile(() => getDB(Astro.locals), id);
+if (result.status === 'error') {
+  console.error(`Failed to load publisher "${id}"`, result.error);
+  Astro.response.status = 503;
+} else if (result.status === 'not-found') {
+  Astro.response.status = 404;
 }
 
-const { publisher, stats, plugins } = profile;
-
 const session = await getSessionUser(Astro);
-const isOwner = session?.githubId === publisher.ownerGithubId;
+const publisher = result.status === 'ok' ? result.profile.publisher : null;
+const stats = result.status === 'ok' ? result.profile.stats : { totalPlugins: 0, totalDownloads: 0 };
+const plugins = result.status === 'ok' ? result.profile.plugins : [];
+const dbError = result.status === 'error';
+const isOwner = Boolean(session && publisher && session.githubId === publisher.ownerGithubId);
 
-const socials = socialLinksFor(publisher);
-const bioHtml = renderMarkdown(publisher.bio);
-const initials = initialsFor(publisher.name);
-const memberSince = publisher.createdAt?.slice(0, 10) ?? '';
+const socials = publisher ? socialLinksFor(publisher) : [];
+const bioHtml = publisher ? renderMarkdown(publisher.bio) : '';
+const initials = initialsFor(publisher?.name ?? id);
+const memberSince = publisher?.createdAt?.slice(0, 10) ?? '';
+
+const fallbackHeading = dbError ? 'Publisher unavailable' : 'Publisher not found';
+const fallbackBody = dbError
+  ? 'We could not load this publisher right now. This is usually temporary — please try again shortly.'
+  : `No publisher exists with the id “${id}”. It may have been renamed, or the link that brought you here may be out of date.`;
 ---
 
 <Layout
-  title={publisher.name}
-  description={publisher.bio || `Extensions published by ${publisher.name} on the OpenROM Marketplace.`}
+  title={publisher?.name ?? fallbackHeading}
+  description={publisher?.bio || (publisher ? `Extensions published by ${publisher.name} on the OpenROM Marketplace.` : fallbackBody)}
 >
+  {
+    !publisher ? (
+      <main class="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center sm:px-6 lg:px-8">
+        <div class="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400/15 to-purple-500/15 text-cyan-300 ring-1 ring-inset ring-zinc-700/60">
+          <Icon name={dbError ? 'wrench' : 'search'} class="h-7 w-7" />
+        </div>
+        <h1 class="mt-6 text-2xl font-bold tracking-tight text-white">{fallbackHeading}</h1>
+        <p class="mt-3 max-w-md text-sm leading-relaxed text-zinc-400">{fallbackBody}</p>
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/"
+            class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-800 px-4 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
+          >
+            <Icon name="arrow-left" class="h-4 w-4" />
+            Back to the marketplace
+          </a>
+          {dbError && (
+            <button
+              type="button"
+              data-retry
+              class="inline-flex h-10 items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 text-sm font-medium text-cyan-200 transition hover:border-cyan-400 hover:text-cyan-100"
+            >
+              <Icon name="sparkles" class="h-4 w-4" />
+              Try again
+            </button>
+          )}
+        </div>
+      </main>
+      <script>
+        document.querySelector('[data-retry]')?.addEventListener('click', () => location.reload());
+      </script>
+    ) : (
   <article class="pb-20">
     <!-- Cover banner -->
     <header class="relative">
@@ -222,6 +267,8 @@ const memberSince = publisher.createdAt?.slice(0, 10) ?? '';
       }
     </main>
   </article>
+  )
+  }
 
-  <DetailDrawer plugins={plugins} />
+  {publisher && <DetailDrawer plugins={plugins} />}
 </Layout>
