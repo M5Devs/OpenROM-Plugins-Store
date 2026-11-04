@@ -42,7 +42,14 @@ const cli = `openrom-core --install-plugin ${plugin.id}`;
 
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-1.5">
-        <h3 class="truncate text-sm font-semibold text-zinc-100">{plugin.name}</h3>
+        <h3 class="truncate text-sm font-semibold text-zinc-100">
+          <a
+            href={`/plugin/${plugin.id}`}
+            class="after:absolute after:inset-0 after:content-['']"
+          >
+            {plugin.name}
+          </a>
+        </h3>
         {
           plugin.publisherVerified && (
             <Icon name="badge-check" class="h-4 w-4 shrink-0 text-cyan-400" />
@@ -54,7 +61,7 @@ const cli = `openrom-core --install-plugin ${plugin.id}`;
           plugin.publisherId ? (
             <a
               href={`/publisher/${plugin.publisherId}`}
-              class="transition hover:text-cyan-300"
+              class="relative z-10 transition hover:text-cyan-300"
               title={`View ${plugin.publisherName}'s profile`}
             >
               {plugin.publisherName}
@@ -106,7 +113,7 @@ const cli = `openrom-core --install-plugin ${plugin.id}`;
       </span>
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="relative z-10 flex items-center gap-2">
       <button
         type="button"
         data-copy-cli={cli}
@@ -116,14 +123,13 @@ const cli = `openrom-core --install-plugin ${plugin.id}`;
       >
         <Icon name="copy" class="h-4 w-4" />
       </button>
-      <button
-        type="button"
-        data-open-detail={plugin.id}
+      <a
+        href={`/plugin/${plugin.id}`}
         class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 px-3 text-xs font-medium text-zinc-300 transition hover:border-cyan-500/40 hover:text-cyan-300"
       >
         Details
         <Icon name="chevron-right" class="h-3.5 w-3.5" />
-      </button>
+      </a>
       {
         published ? (
           <a

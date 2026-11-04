@@ -1,7 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Card from '../../components/Card.astro';
-import DetailDrawer from '../../components/DetailDrawer.astro';
 import Icon from '../../components/Icon.astro';
 import { getDB } from '../../lib/db';
 import { loadPublisherProfile } from '../../lib/publisher-profile';
@@ -270,5 +269,4 @@ const fallbackBody = dbError
   )
   }
 
-  {publisher && <DetailDrawer plugins={plugins} />}
 </Layout>

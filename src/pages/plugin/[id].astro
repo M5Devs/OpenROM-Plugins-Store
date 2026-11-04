@@ -1,0 +1,358 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Icon from '../../components/Icon.astro';
+import { getDB, getPlugin } from '../../lib/db';
+import { PLATFORM_ICONS, SITE } from '../../lib/site';
+import { renderMarkdown } from '../../lib/markdown';
+
+export const prerender = false;
+
+const id = Astro.params.id ?? '';
+
+// A D1 read can fail outright (missing table, unavailable binding). That is a
+// server problem, not a missing plugin, so it must not surface as an unhandled
+// 500 — mirror the publisher page and report it as a 503 instead.
+let plugin = null;
+let dbError = false;
+try {
+  plugin = await getPlugin(getDB(Astro.locals), id);
+} catch (error) {
+  console.error(`Failed to load plugin "${id}"`, error);
+  dbError = true;
+}
+
+if (dbError) {
+  Astro.response.status = 503;
+} else if (!plugin) {
+  Astro.response.status = 404;
+}
+
+const cli = plugin ? `openrom-core --install-plugin ${plugin.id}` : '';
+const published = Boolean(plugin?.sha256);
+const readmeHtml = plugin
+  ? renderMarkdown(plugin.readme) ||
+    '<p class="text-zinc-500">No README has been published for this extension yet.</p>'
+  : '';
+
+const manifest = plugin
+  ? {
+      id: plugin.id,
+      name: plugin.name,
+      version: plugin.version,
+      minCoreVersion: plugin.minCoreVersion,
+      publisher: {
+        id: plugin.publisherId,
+        name: plugin.publisherName,
+        verified: plugin.publisherVerified,
+      },
+      category: plugin.category,
+      description: plugin.description,
+      routes: plugin.routes,
+      platforms: plugin.platforms,
+      downloadUrl: plugin.downloadUrl,
+      sha256: plugin.sha256 || null,
+      icon: plugin.icon,
+    }
+  : null;
+
+const heading = dbError ? 'Plugin unavailable' : 'Plugin not found';
+const body = dbError
+  ? 'We could not load this plugin right now. This is usually temporary — please try again shortly.'
+  : `No plugin exists with the id “${id}”. It may have been renamed, or the link that brought you here may be out of date.`;
+---
+
+<Layout title={plugin?.name ?? heading} description={plugin?.description ?? body}>
+  {
+    !plugin ? (
+      <main class="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center sm:px-6 lg:px-8">
+        <div class="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400/15 to-purple-500/15 text-cyan-300 ring-1 ring-inset ring-zinc-700/60">
+          <Icon name={dbError ? 'wrench' : 'search'} class="h-7 w-7" />
+        </div>
+        <h1 class="mt-6 text-2xl font-bold tracking-tight text-white">{heading}</h1>
+        <p class="mt-3 max-w-md text-sm leading-relaxed text-zinc-400">{body}</p>
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/"
+            class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-800 px-4 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
+          >
+            <Icon name="arrow-left" class="h-4 w-4" />
+            Back to Marketplace
+          </a>
+          {dbError && (
+            <button
+              type="button"
+              data-retry
+              class="inline-flex h-10 items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 text-sm font-medium text-cyan-200 transition hover:border-cyan-400 hover:text-cyan-100"
+            >
+              <Icon name="sparkles" class="h-4 w-4" />
+              Try again
+            </button>
+          )}
+        </div>
+      </main>
+      <script>
+        document.querySelector('[data-retry]')?.addEventListener('click', () => location.reload());
+      </script>
+    ) : (
+      <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <a
+          href="/"
+          class="inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-cyan-300"
+        >
+          <Icon name="arrow-left" class="h-4 w-4" />
+          Back to Marketplace
+        </a>
+
+        {/* Hero */}
+        <header class="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 sm:p-8">
+          <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
+            <span class="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-cyan-400/15 to-purple-500/15 text-cyan-300 ring-1 ring-inset ring-zinc-700/60">
+              <Icon name={plugin.icon} class="h-8 w-8" />
+            </span>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h1 class="text-2xl font-bold tracking-tight text-white">{plugin.name}</h1>
+                <span class="rounded-md border border-zinc-800 bg-zinc-950/60 px-2 py-0.5 font-mono text-xs text-zinc-400">
+                  v{plugin.version}
+                </span>
+                <span class="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-xs font-medium text-cyan-300">
+                  {plugin.category}
+                </span>
+              </div>
+
+              <p class="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-zinc-400">
+                <span class="text-zinc-500">by</span>
+                {plugin.publisherId ? (
+                  <a
+                    href={`/publisher/${plugin.publisherId}`}
+                    class="inline-flex items-center gap-1.5 font-medium text-zinc-200 transition hover:text-cyan-300"
+                  >
+                    {plugin.publisherName}
+                    {plugin.publisherVerified && (
+                      <Icon name="badge-check" class="h-4 w-4 text-cyan-400" />
+                    )}
+                  </a>
+                ) : (
+                  <span class="inline-flex items-center gap-1.5 font-medium text-zinc-200">
+                    {plugin.publisherName}
+                    {plugin.publisherVerified && (
+                      <Icon name="badge-check" class="h-4 w-4 text-cyan-400" />
+                    )}
+                  </span>
+                )}
+                <span aria-hidden="true">·</span>
+                <span>min core {plugin.minCoreVersion}</span>
+              </p>
+
+              <p class="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-zinc-400">
+                {plugin.description}
+              </p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div class="mt-6 flex flex-wrap items-center gap-3">
+            {published ? (
+              <a
+                href={`openrom://plugin/${plugin.id}`}
+                class="inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 shadow-lg shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-purple-400"
+              >
+                <Icon name="zap" class="h-4 w-4" />
+                Install in OpenROM
+              </a>
+            ) : (
+              <span
+                title="No .orplug bundle has been published for this extension yet"
+                class="inline-flex h-11 cursor-not-allowed items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-500"
+              >
+                <Icon name="zap" class="h-4 w-4" />
+                Bundle not published yet
+              </span>
+            )}
+
+            {published && (
+              <a
+                href={`/api/download/${plugin.id}`}
+                class="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
+              >
+                <Icon name="download" class="h-4 w-4" />
+                Download .orplug
+              </a>
+            )}
+
+            <button
+              type="button"
+              data-copy={cli}
+              class="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
+            >
+              <Icon name="terminal" class="h-4 w-4" />
+              Copy CLI Install
+            </button>
+          </div>
+
+          {
+            published && (
+              <p class="mt-3 text-xs text-zinc-500">
+                One-click install needs OpenROM Core installed. If nothing happens, use{' '}
+                <a href={`/api/download/${plugin.id}`} class="text-cyan-400 hover:underline">
+                  the .orplug download
+                </a>{' '}
+                or the CLI command above.
+              </p>
+            )
+          }
+
+          {/* Quick facts */}
+          <dl class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-zinc-800/70 pt-5 text-xs text-zinc-500">
+            <div class="flex items-center gap-1.5">
+              <Icon name="download" class="h-3.5 w-3.5" />
+              <span class="font-medium text-zinc-300">{plugin.downloads.toLocaleString()}</span>
+              <span>downloads</span>
+            </div>
+            <div class="flex items-center gap-3">
+              {plugin.platforms.map((platform) => (
+                <span class="inline-flex items-center gap-1.5" title={platform}>
+                  <Icon name={PLATFORM_ICONS[platform] ?? 'package'} class="h-3.5 w-3.5" />
+                  <span>{platform}</span>
+                </span>
+              ))}
+            </div>
+          </dl>
+        </header>
+
+        <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          {/* Main column */}
+          <div class="flex flex-col gap-8">
+            <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">Overview</h2>
+              <div class="prose mt-4" set:html={readmeHtml} />
+            </section>
+
+            <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                Supported Routes
+              </h2>
+              {plugin.routes.length > 0 ? (
+                <div class="mt-4 flex flex-wrap gap-2">
+                  {plugin.routes.map((route) => (
+                    <span class="inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-1.5 font-mono text-xs text-zinc-200">
+                      <Icon name="route" class="h-3.5 w-3.5 text-cyan-400" />
+                      {route.replace(/\s*->\s*/, ' ➔ ')}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p class="mt-4 text-sm text-zinc-500">No conversion routes declared.</p>
+              )}
+            </section>
+
+            <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                Installation
+              </h2>
+
+              <div class="mt-4">
+                <h3 class="text-sm font-semibold text-zinc-200">Command line</h3>
+                <p class="mt-1.5 text-sm text-zinc-400">
+                  Install with OpenROM Core. This fetches the bundle and verifies its SHA-256
+                  before installing.
+                </p>
+                <div class="mt-3 flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+                  <code class="flex-1 overflow-x-auto font-mono text-xs text-cyan-300">{cli}</code>
+                  <button
+                    type="button"
+                    data-copy={cli}
+                    aria-label="Copy install command"
+                    class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-400 transition hover:text-cyan-300"
+                  >
+                    <Icon name="copy" class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-6">
+                <h3 class="text-sm font-semibold text-zinc-200">Desktop app</h3>
+                <ol class="mt-2 flex flex-col gap-1.5 text-sm text-zinc-400">
+                  <li class="flex gap-2">
+                    <span class="text-zinc-600">1.</span>
+                    <span>
+                      Download the <span class="font-mono text-zinc-300">.orplug</span> bundle
+                      above.
+                    </span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-zinc-600">2.</span>
+                    <span>
+                      Drag the file onto the OpenROM window, or use <em>Install from file…</em>.
+                    </span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-zinc-600">3.</span>
+                    <span>OpenROM checks the checksum and installs it automatically.</span>
+                  </li>
+                </ol>
+              </div>
+            </section>
+          </div>
+
+          {/* Sidebar */}
+          <aside class="flex flex-col gap-6">
+            <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                Manifest Specs
+              </h2>
+
+              {published ? (
+                <div class="mt-4">
+                  <p class="text-xs font-medium text-zinc-500">SHA-256 checksum</p>
+                  <div class="mt-2 flex items-start gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+                    <code class="min-w-0 flex-1 break-all font-mono text-[0.7rem] leading-relaxed text-zinc-300">
+                      {plugin.sha256}
+                    </code>
+                    <button
+                      type="button"
+                      data-copy={plugin.sha256}
+                      aria-label="Copy SHA-256 checksum"
+                      class="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-400 transition hover:text-cyan-300"
+                    >
+                      <Icon name="copy" class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p class="mt-4 text-xs text-zinc-500">
+                  No <span class="font-mono">.orplug</span> bundle has been published for this
+                  extension yet, so it cannot be installed. Track progress on{' '}
+                  <a class="text-cyan-400 hover:underline" href={SITE.github}>
+                    GitHub
+                  </a>.
+                </p>
+              )}
+
+              <p class="mt-5 text-xs font-medium text-zinc-500">plugin.json</p>
+              <pre class="mt-2 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 font-mono text-[0.7rem] leading-relaxed text-zinc-300">
+                {JSON.stringify(manifest, null, 2)}
+              </pre>
+            </section>
+          </aside>
+        </div>
+      </main>
+      <script>
+        document.addEventListener('click', async (event) => {
+          const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-copy]');
+          if (!trigger) return;
+          const text = trigger.dataset.copy ?? '';
+          try {
+            await navigator.clipboard.writeText(text);
+            const original = trigger.innerHTML;
+            trigger.innerHTML = '<span class="text-cyan-400">copied</span>';
+            setTimeout(() => (trigger.innerHTML = original), 1200);
+          } catch {
+            /* clipboard unavailable */
+          }
+        });
+      </script>
+    )
+  }
+</Layout>

@@ -34,7 +34,8 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 
 | Path | Purpose |
 | --- | --- |
-| `src/pages/index.astro` | Storefront (search, filters, cards, detail drawer) |
+| `src/pages/index.astro` | Storefront (search, filters, cards); `?ext=`/`?id=` redirect to the detail page |
+| `src/pages/plugin/[id].astro` | Server-rendered plugin details (README, routes, install, manifest) |
 | `src/pages/dashboard.astro` | Signed-in publisher dashboard (create + list publishers) |
 | `src/pages/dashboard/settings.astro` | Account settings (display name + avatar upload) |
 | `src/pages/dashboard/publisher/[id].astro` | Owner-only publisher profile editor |
@@ -47,7 +48,7 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | `src/pages/api/user/profile.ts` | `PATCH` the signed-in user's display name + avatar |
 | `src/pages/api/publishers/create.ts` | Creates a publisher owned by the signed-in user |
 | `src/pages/api/publishers/[id].ts` | `GET` a publisher profile + stats; `PATCH` the owner's branding |
-| `src/components/` | `Navbar`, `Card`, `DetailDrawer`, `CategoryFilter`, `Icon`, `ImageField` |
+| `src/components/` | `Navbar`, `Card`, `CategoryFilter`, `Icon`, `ImageField` |
 | `src/lib/db.ts` | Typed D1 access layer for the catalog |
 | `src/lib/session.ts` | HMAC-signed session token (sign/verify) |
 | `src/lib/auth.ts` | Session helpers shared by pages and API routes |

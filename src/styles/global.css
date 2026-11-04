@@ -88,14 +88,6 @@ body {
   margin: 1em 0;
 }
 
-/* Details drawer transitions. */
-[data-drawer] {
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
-}
-[data-drawer-backdrop] {
-  transition: opacity 200ms ease;
-}
-
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: #09090b; }
 ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 999px; }
