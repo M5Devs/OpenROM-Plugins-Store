@@ -4,9 +4,10 @@
 --   * The `publishers` row below is the single registered publisher. It is seeded
 --     directly (not read from a file) with `verified = 1`; publisher records live in
 --     D1, not in this repository.
---   * The three rows mirror manifests/m/clausvalca/**/manifest.json (real metadata).
+--   * The three rows carry the real metadata for the publisher's extensions
+--     (formerly mirrored from the removed `manifests/` tree).
 --   * downloads is 0 and sha256 is '' because no `.orplug` bundle has been published
---     yet (SourceForge `openrom-binaries` currently ships raw binaries only, and the
+--     yet (SourceForge `openrom-plugins` currently ships raw binaries only, and the
 --     GitHub repository has no releases). Nothing here is fabricated; empty values
 --     signal "not yet published" and are surfaced as such in the UI.
 --   * The users/publishers rows mirror that same publisher record; the GitHub id and

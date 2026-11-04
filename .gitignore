@@ -3,6 +3,9 @@ __pycache__/
 # Plugin binaries are never committed to this metadata-only repository.
 # Packaged extensions are hosted on SourceForge.
 *.orplug
+# SourceForge upload probe artifacts
+sf_probe_healthcheck.txt
+temp_healthcheck.txt
 
 # Local tooling / build artifacts
 node_modules/
