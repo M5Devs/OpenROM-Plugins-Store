@@ -62,10 +62,13 @@ with a direct call to action to the [submission guide](./CONTRIBUTING.md).
 | `migrations/0003_publisher_profiles.sql` | Publisher profile fields + `plugins.publisher_id` |
 | `migrations/0004_user_profiles.sql` | `users.profile_customized` flag |
 | `seed/0001_seed.sql` | Seed with the repository's real, verified extensions |
-| `manifests/m/<publisher>/<plugin>/<version>/manifest.json` | Per-extension manifests (metadata only) |
-| `scripts/` | Manifest validation tooling (`validate_plugin.py`) |
+| `scripts/test_sourceforge_storage.sh` | SourceForge connectivity + upload probe |
+| `scripts/test-sourceforge.sh` | Alias for the probe above |
 | `tests/auth.test.ts` / `tests/publisher-profile.test.ts` / `tests/publisher-profile-page.test.ts` / `tests/user-profile.test.ts` | Unit tests (`npm test`) |
 | `wrangler.toml` | Cloudflare Pages + D1 binding configuration |
+
+> Extension metadata lives entirely in D1. There is no static manifest or
+> publisher directory in this repository.
 
 ## Local development
 
@@ -91,9 +94,35 @@ npm run build                 # production build to dist/
 npm test                      # session + publisher unit tests
 npm run db:migrate:local      # apply migrations locally
 npm run db:seed:local         # (re)load seed data
-python scripts/validate_plugin.py   # validate manifests
-python -m unittest discover tests   # security test suite
+bash scripts/test_sourceforge_storage.sh   # SourceForge connectivity + upload probe
 ```
+
+## Architecture
+
+The store is split across two independent systems:
+
+| Concern | System |
+| --- | --- |
+| Metadata & storefront | Cloudflare Pages + D1 (`openrom-store` database, `DB` binding) |
+| Binary hosting | SourceForge FRS (`openrom-plugins/`) |
+
+- **Metadata & storefront.** Astro renders on demand at the edge and reads the
+  catalog live from D1 on every request. Publishers, extensions, versions, and
+  download counters all live in D1 — nothing is committed to this repository.
+- **Binary hosting.** Packaged `.orplug` bundles are uploaded to SourceForge and
+  served to end users from
+  `https://downloads.sourceforge.net/project/openrom-plugins/`. The repository
+  stores no binaries.
+
+Run the connectivity probe to confirm both halves are reachable:
+
+```bash
+bash scripts/test_sourceforge_storage.sh
+```
+
+It verifies the public mirror, detects `SF_USER` / `SF_PASS`, and — when rsync and
+credentials are available — uploads a small healthcheck file, confirms it is
+served, and removes it. Without credentials it prints how CI/CD publishes instead.
 
 ## Authentication
 
@@ -214,13 +243,30 @@ npx wrangler pages deploy dist --project-name openrom-store
 
 ## Publishing an extension
 
-1. Add `manifests/m/<publisher-id>/<plugin-id>/<version>/manifest.json`.
-2. Register the publisher through the site (`/dashboard` → sign in with GitHub).
-   Publishers live in the D1 `publishers` table, not in this repository; the
-   publisher id must match the manifest's `publisher_id` and directory path.
-3. Open a pull request. CI validates the manifests and builds the site.
-4. Once the `.orplug` bundle is published, a maintainer inserts the row (with its
-   real SHA-256) into D1 so the extension appears in the marketplace.
+There is no pull request against this repository for new extensions — metadata is
+created in D1 through the site, and binaries are uploaded to SourceForge.
 
-Manifests may not self-declare verification, and the manifest's `publisher_id` must
-match its directory path — see `tests/test_security.py`.
+1. **Package** your extension as `<plugin-id>-<version>.orplug`.
+2. **Upload** the bundle to SourceForge FRS:
+
+   ```bash
+   rsync -av -e ssh "./<plugin-id>-<version>.orplug" \
+     "$SF_USER@frs.sourceforge.net:/home/frs/project/openrom-plugins/"
+   ```
+
+   The bundle is then served from
+   `https://downloads.sourceforge.net/project/openrom-plugins/<plugin-id>-<version>.orplug`.
+   Note: SourceForge FRS rejects hidden files (dotfiles), so keep a normal filename.
+3. **Compute the SHA-256** of the exact file you uploaded:
+
+   ```bash
+   sha256sum <plugin-id>-<version>.orplug    # macOS: shasum -a 256
+   ```
+4. **Register a publisher** at `/dashboard` (sign in with GitHub). A publisher id
+   matching your GitHub username (case-insensitive) is verified automatically;
+   otherwise a maintainer reviews it.
+5. **Add the extension row** to D1 with its download URL and SHA-256 so it appears
+   in the marketplace.
+
+Verify storage connectivity at any time with
+`bash scripts/test_sourceforge_storage.sh`.
