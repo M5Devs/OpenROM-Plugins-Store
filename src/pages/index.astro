@@ -2,12 +2,19 @@
 import Layout from '../layouts/Layout.astro';
 import CategoryFilter from '../components/CategoryFilter.astro';
 import Card from '../components/Card.astro';
-import DetailDrawer from '../components/DetailDrawer.astro';
 import Icon from '../components/Icon.astro';
 import { getDB, listPlugins, type Plugin } from '../lib/db';
 import { EMPTY_STATE, SITE, orderCategories } from '../lib/site';
 
 export const prerender = false;
+
+// Plugin details used to open in a client-side drawer keyed by ?ext=/?id=. Those
+// deep links now belong to the dedicated /plugin/[id] page, so send them there
+// instead of rendering the catalog with a query nothing acts on.
+const legacyId = Astro.url.searchParams.get('ext') ?? Astro.url.searchParams.get('id');
+if (legacyId) {
+  return Astro.redirect(`/plugin/${encodeURIComponent(legacyId)}`, 301);
+}
 
 let plugins: Plugin[] = [];
 let dbError: string | null = null;
@@ -136,8 +143,6 @@ const total = plugins.length;
       )
     }
   </main>
-
-  <DetailDrawer plugins={plugins} />
 </Layout>
 
 <script>
@@ -256,7 +261,7 @@ const total = plugins.length;
     }
   });
 
-  // --- Deep links: ?q= pre-filters the grid (the drawer handles ?ext= itself) ---
+  // --- Deep links: ?q= pre-filters the grid ---
   const params = new URLSearchParams(location.search);
   const q = params.get('q');
   if (q && searchInput) {
