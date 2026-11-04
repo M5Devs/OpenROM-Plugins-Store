@@ -37,6 +37,9 @@ const initials = initialsFor(publisher?.name ?? id);
 const memberSince = publisher?.createdAt?.slice(0, 10) ?? '';
 
 const fallbackHeading = dbError ? 'Publisher unavailable' : 'Publisher not found';
+const fallbackDisplayHeading = dbError
+  ? 'Publisher unavailable'
+  : 'Whoops! ROMeo got lost in the bitstream (404).';
 const fallbackBody = dbError
   ? 'We could not load this publisher right now. This is usually temporary — please try again shortly.'
   : `No publisher exists with the id “${id}”. It may have been renamed, or the link that brought you here may be out of date.`;
@@ -48,13 +51,24 @@ const fallbackBody = dbError
 >
   {
     !publisher ? (
-      <main class="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center sm:px-6 lg:px-8">
-        <div class="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400/15 to-purple-500/15 text-cyan-300 ring-1 ring-inset ring-zinc-700/60">
-          <Icon name={dbError ? 'wrench' : 'search'} class="h-7 w-7" />
+      <main class="relative mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center sm:px-6 lg:px-8">
+        <div
+          class="pointer-events-none absolute left-1/2 top-28 h-56 w-56 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl"
+          aria-hidden="true"
+        >
         </div>
-        <h1 class="mt-6 text-2xl font-bold tracking-tight text-white">{fallbackHeading}</h1>
-        <p class="mt-3 max-w-md text-sm leading-relaxed text-zinc-400">{fallbackBody}</p>
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <img
+          src="/images/romeo-error.png"
+          alt="ROMeo, the OpenROM mascot, looking dizzy with a bandage on his head"
+          width="140"
+          height="140"
+          class="relative h-[140px] w-[140px] object-contain drop-shadow-[0_0_28px_rgba(34,211,238,0.25)]"
+        />
+        <h1 class="relative mt-6 text-2xl font-bold tracking-tight text-white">
+          {fallbackDisplayHeading}
+        </h1>
+        <p class="relative mt-3 max-w-md text-sm leading-relaxed text-zinc-400">{fallbackBody}</p>
+        <div class="relative mt-8 flex flex-wrap items-center justify-center gap-3">
           <a
             href="/"
             class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-800 px-4 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"

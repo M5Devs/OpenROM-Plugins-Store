@@ -40,32 +40,51 @@ const total = plugins.length;
     <div class="grid-lines pointer-events-none absolute inset-0" aria-hidden="true"></div>
 
     <section class="relative mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8">
-      <p class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400">
-        <span class="h-1.5 w-1.5 rounded-full bg-cyan-400"></span>
-        Live catalog · served from Cloudflare D1
-      </p>
-      <h1 class="mt-5 max-w-3xl text-balance text-4xl font-bold tracking-tight text-white sm:text-5xl">
-        Extend your OpenROM preservation workflow
-      </h1>
-      <p class="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400">
-        {SITE.description} Every download count below is a real, live number — nothing here is
-        simulated.
-      </p>
+      <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div>
+          <p class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400">
+            <span class="h-1.5 w-1.5 rounded-full bg-cyan-400"></span>
+            Live catalog · served from Cloudflare D1
+          </p>
+          <h1 class="mt-5 max-w-3xl text-balance text-4xl font-bold tracking-tight text-white sm:text-5xl">
+            Extend your OpenROM preservation workflow
+          </h1>
+          <p class="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400">
+            {SITE.description} Every download count below is a real, live number — nothing here is
+            simulated.
+          </p>
 
-      <div class="mt-7 flex flex-wrap items-center gap-3">
-        <a
-          href="#catalog"
-          class="inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
-        >
-          Browse extensions
-          <Icon name="chevron-right" class="h-4 w-4" />
-        </a>
-        <a
-          href={SITE.contributing}
-          class="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
-        >
-          Publish an Extension
-        </a>
+          <div class="mt-7 flex flex-wrap items-center gap-3">
+            <a
+              href="#catalog"
+              class="inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
+            >
+              Browse extensions
+              <Icon name="chevron-right" class="h-4 w-4" />
+            </a>
+            <a
+              href={SITE.contributing}
+              class="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
+            >
+              Publish an Extension
+            </a>
+          </div>
+        </div>
+
+        <div class="relative">
+          <div
+            class="pointer-events-none absolute -inset-4 rounded-[2rem] bg-gradient-to-tr from-cyan-500/20 via-transparent to-purple-500/20 blur-2xl"
+            aria-hidden="true"
+          >
+          </div>
+          <img
+            src="/images/romeo-banner.png"
+            alt="ROMeo, the OpenROM mascot, standing in a retro arcade shop"
+            width="1200"
+            height="670"
+            class="relative w-full rounded-2xl border border-zinc-800 object-cover shadow-xl shadow-cyan-950/20"
+          />
+        </div>
       </div>
     </section>
   </div>
@@ -82,19 +101,28 @@ const total = plugins.length;
         </div>
       ) : total === 0 ? (
         <div
-          class="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30 px-6 py-20 text-center"
+          class="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center"
           data-empty-state
         >
-          <div class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400/15 to-purple-500/15 text-cyan-300 ring-1 ring-inset ring-zinc-700/60">
-            <Icon name="inbox" class="h-7 w-7" />
+          <div
+            class="pointer-events-none absolute left-1/2 top-0 h-56 w-56 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl"
+            aria-hidden="true"
+          >
           </div>
-          <h2 class="mt-6 text-xl font-semibold text-white">{EMPTY_STATE.title}</h2>
-          <p class="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-400">
+          <img
+            src="/images/romeo-search.png"
+            alt="ROMeo, the OpenROM mascot, looking puzzled through a magnifying glass"
+            width="140"
+            height="140"
+            class="relative mx-auto h-[140px] w-[140px] object-contain drop-shadow-[0_0_24px_rgba(34,211,238,0.25)]"
+          />
+          <h2 class="relative mt-6 text-xl font-semibold text-white">{EMPTY_STATE.title}</h2>
+          <p class="relative mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-400">
             {EMPTY_STATE.body}
           </p>
           <a
             href={SITE.contributing}
-            class="mt-7 inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
+            class="relative mt-7 inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
           >
             {EMPTY_STATE.cta}
             <Icon name="external-link" class="h-4 w-4" />
@@ -126,17 +154,37 @@ const total = plugins.length;
 
             <div
               data-no-results
-              class="hidden rounded-xl border border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center"
+              class="hidden rounded-2xl border border-zinc-800 bg-zinc-900/30 px-6 py-14 text-center"
             >
-              <Icon name="search" class="mx-auto h-6 w-6 text-zinc-600" />
-              <p class="mt-3 text-sm text-zinc-400">No extensions match your filters.</p>
-              <button
-                type="button"
-                data-clear-filters
-                class="mt-4 rounded-lg border border-zinc-800 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:border-zinc-700 hover:text-white"
-              >
-                Clear filters
-              </button>
+              <img
+                src="/images/romeo-search.png"
+                alt="ROMeo, the OpenROM mascot, looking puzzled through a magnifying glass"
+                width="128"
+                height="128"
+                class="mx-auto h-32 w-32 object-contain drop-shadow-[0_0_24px_rgba(34,211,238,0.25)]"
+              />
+              <h3 class="mt-5 text-lg font-semibold text-white">
+                ROMeo couldn&rsquo;t find any extensions!
+              </h3>
+              <p class="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-400">
+                Try a different search term, or be the first to build this extension for OpenROM!
+              </p>
+              <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <a
+                  href={SITE.contributing}
+                  class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-4 text-sm font-semibold text-zinc-950 transition hover:from-cyan-400 hover:to-purple-400"
+                >
+                  Publish an Extension
+                  <Icon name="external-link" class="h-4 w-4" />
+                </a>
+                <button
+                  type="button"
+                  data-clear-filters
+                  class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-800 px-4 text-sm font-medium text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+                >
+                  Clear filters
+                </button>
+              </div>
             </div>
           </section>
         </div>
