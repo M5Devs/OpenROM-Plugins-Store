@@ -12,6 +12,11 @@ interface Props {
 }
 
 const { user = null } = Astro.props;
+
+// The navbar is shared by every route, so the search box pre-fills from the
+// current ?q= and submits back to the catalog. That keeps search working from
+// pages that have no catalog of their own (a plugin or publisher page).
+const searchValue = Astro.url.searchParams.get('q') ?? '';
 ---
 
 <header class="sticky top-0 z-40 border-b border-zinc-900/80 bg-zinc-950/80 backdrop-blur-xl">
@@ -30,7 +35,12 @@ const { user = null } = Astro.props;
       </span>
     </a>
 
-    <div class="relative flex-1">
+    <form
+      role="search"
+      method="get"
+      action="/"
+      class="relative flex-1"
+    >
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -42,13 +52,28 @@ const { user = null } = Astro.props;
       </svg>
       <input
         id="search"
+        name="q"
         type="search"
         autocomplete="off"
+        value={searchValue || undefined}
         placeholder="Search extensions, publishers, routes…"
         aria-label="Search extensions"
-        class="h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900/60 pl-9 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+        class="h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900/60 pl-9 pr-10 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
       />
-    </div>
+      <button
+        type="button"
+        data-search-clear
+        aria-label="Clear search"
+        class:list={[
+          'absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200',
+          { hidden: !searchValue },
+        ]}
+      >
+        <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4" aria-hidden="true">
+          <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+        </svg>
+      </button>
+    </form>
 
     <nav class="flex shrink-0 items-center gap-2">
       <a
@@ -179,4 +204,31 @@ const { user = null } = Astro.props;
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeMenu();
   });
+
+  // --- Search box ---
+  const searchInput = document.querySelector<HTMLInputElement>('#search');
+  const clearButton = document.querySelector<HTMLButtonElement>('[data-search-clear]');
+
+  function syncClearButton() {
+    if (!searchInput || !clearButton) return;
+    clearButton.classList.toggle('hidden', searchInput.value.length === 0);
+  }
+
+  searchInput?.addEventListener('input', syncClearButton);
+
+  clearButton?.addEventListener('click', () => {
+    if (!searchInput) return;
+    searchInput.value = '';
+    syncClearButton();
+    // A ?q= search is answered server-side, so the grid only holds the matching
+    // subset and restoring everything needs a fresh request. Without one the full
+    // catalog is already in the DOM, so let the page's own filter reset it in place.
+    if (new URLSearchParams(location.search).has('q')) {
+      location.href = '/';
+    } else {
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+
+  syncClearButton();
 </script>
