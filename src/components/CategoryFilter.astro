@@ -1,6 +1,6 @@
 ---
 import Icon from './Icon.astro';
-import { PLATFORM_ICONS } from '../lib/site';
+import { PLATFORM_ICONS, categoryLabel } from '../lib/site';
 
 interface Props {
   categories: string[];
@@ -35,7 +35,7 @@ const { categories, platforms, categoryCounts, total } = Astro.props;
             data-category={category}
             class="category-btn group flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-zinc-900 data-[active=true]:bg-zinc-900 data-[active=true]:text-white"
           >
-            <span class="truncate">{category}</span>
+            <span class="truncate">{categoryLabel(category)}</span>
             <span class="rounded-md bg-zinc-800/80 px-1.5 py-0.5 text-xs text-zinc-400">
               {categoryCounts[category] ?? 0}
             </span>

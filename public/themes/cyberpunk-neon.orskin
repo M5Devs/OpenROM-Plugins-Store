@@ -1,0 +1,19 @@
+{
+  "format": "openrom.theme",
+  "version": 1,
+  "id": "cyberpunk-neon",
+  "name": "Cyberpunk Neon",
+  "author": "M5 Dev",
+  "description": "Official high-contrast glowing neon cyan and hot pink retro-futuristic theme for OpenROM.",
+  "palette": {
+    "background": "#0d0e15",
+    "surface": "#161926",
+    "accent": "#e94560",
+    "text": "#ffffff"
+  },
+  "swatches": ["#0d0e15", "#161926", "#e94560", "#00f0ff", "#ffffff"],
+  "highlights": {
+    "primary": "#00f0ff",
+    "secondary": "#e94560"
+  }
+}
