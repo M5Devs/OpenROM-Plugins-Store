@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import CategoryFilter from '../components/CategoryFilter.astro';
 import Card from '../components/Card.astro';
 import Icon from '../components/Icon.astro';
-import { getDB, listPlugins, type Plugin } from '../lib/db';
+import { getDB, listPlugins, searchPlugins, type Plugin } from '../lib/db';
 import { EMPTY_STATE, SITE, orderCategories } from '../lib/site';
 
 export const prerender = false;
@@ -16,10 +16,17 @@ if (legacyId) {
   return Astro.redirect(`/plugin/${encodeURIComponent(legacyId)}`, 301);
 }
 
+// A ?q= search is answered by D1 so the results are real at first paint (and the
+// grid is populated before the client script runs). The navbar pre-fills the input
+// with the same value, so the box and the results never disagree on load.
+const searchParam = Astro.url.searchParams.get('q')?.trim() ?? '';
+const isSearching = searchParam.length > 0;
+
 let plugins: Plugin[] = [];
 let dbError: string | null = null;
 try {
-  plugins = await listPlugins(getDB(Astro.locals));
+  const db = getDB(Astro.locals);
+  plugins = isSearching ? await searchPlugins(db, searchParam) : await listPlugins(db);
 } catch (error) {
   dbError = error instanceof Error ? error.message : String(error);
 }
@@ -99,7 +106,7 @@ const total = plugins.length;
           </p>
           <p class="mt-3 break-all font-mono text-xs text-zinc-600">{dbError}</p>
         </div>
-      ) : total === 0 ? (
+      ) : total === 0 && !isSearching ? (
         <div
           class="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center"
           data-empty-state
@@ -138,10 +145,11 @@ const total = plugins.length;
           />
 
           <section>
-            <div class="mb-5 flex items-baseline justify-between">
+            <div class="mb-5 flex items-baseline justify-between gap-3">
               <h2 class="text-sm font-semibold text-zinc-300">
                 <span data-result-count>{total}</span>
                 {total === 1 ? ' extension' : ' extensions'}
+                {isSearching && <span class="font-normal text-zinc-500">for “{searchParam}”</span>}
               </h2>
               <p class="text-xs text-zinc-600">Sorted live from D1</p>
             </div>
@@ -309,12 +317,12 @@ const total = plugins.length;
     }
   });
 
-  // --- Deep links: ?q= pre-filters the grid ---
-  const params = new URLSearchParams(location.search);
-  const q = params.get('q');
-  if (q && searchInput) {
-    searchInput.value = q;
-    state.query = q.trim().toLowerCase();
+  // --- Initial query ---
+  // The navbar input is pre-filled server-side from ?q=, so adopt whatever it
+  // holds (trimmed, lowercased) as the starting query and reconcile the grid with
+  // it. This keeps the box and the server-rendered results in agreement on load.
+  if (searchInput && searchInput.value.trim()) {
+    state.query = searchInput.value.trim().toLowerCase();
     applyFilters();
   }
 </script>

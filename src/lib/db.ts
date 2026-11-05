@@ -113,6 +113,27 @@ export async function listPlugins(db: D1Database): Promise<Plugin[]> {
   return (results ?? []).map(toPlugin);
 }
 
+/**
+ * Case-insensitive search across the fields a visitor can see on a card: name,
+ * description and category. The term is bound, never interpolated, so the `%`
+ * wildcards are the only pattern syntax that reaches SQL. `COALESCE` keeps rows
+ * with a NULL description matchable.
+ */
+export async function searchPlugins(db: D1Database, query: string): Promise<Plugin[]> {
+  const term = `%${query.toLowerCase()}%`;
+  const { results } = await db
+    .prepare(
+      `SELECT ${PLUGIN_COLUMNS} ${PLUGIN_SOURCE}
+        WHERE LOWER(p.name) LIKE ?1
+           OR LOWER(COALESCE(p.description, '')) LIKE ?1
+           OR LOWER(p.category) LIKE ?1
+        ORDER BY p.downloads DESC, p.name ASC`,
+    )
+    .bind(term)
+    .all<PluginRow>();
+  return (results ?? []).map(toPlugin);
+}
+
 export async function getPlugin(db: D1Database, id: string): Promise<Plugin | null> {
   const row = await db
     .prepare(`SELECT ${PLUGIN_COLUMNS} ${PLUGIN_SOURCE} WHERE p.id = ?`)
