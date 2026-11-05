@@ -23,7 +23,20 @@ export const PLATFORM_ICONS: Record<string, string> = {
   Linux: 'terminal',
   macOS: 'apple',
   Android: 'smartphone',
+  'All Platforms': 'layers',
 };
+
+/**
+ * A leading emoji for the categories that have one. Themes is the only
+ * special-cased label today; everything else renders its raw category name.
+ */
+export const CATEGORY_LABELS: Record<string, string> = {
+  Themes: '🎨 Themes',
+};
+
+export function categoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category;
+}
 
 /** Stable display order; unknown categories are appended alphabetically. */
 export const CATEGORY_ORDER = [
@@ -33,6 +46,7 @@ export const CATEGORY_ORDER = [
   'Xbox',
   'Patchers',
   'Utility',
+  'Themes',
 ];
 
 export function orderCategories(categories: string[]): string[] {

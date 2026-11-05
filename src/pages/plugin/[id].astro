@@ -2,7 +2,15 @@
 import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
 import { getDB, getPlugin } from '../../lib/db';
-import { PLATFORM_ICONS, SITE } from '../../lib/site';
+import { PLATFORM_ICONS, SITE, categoryLabel } from '../../lib/site';
+import {
+  isTheme,
+  themePalette,
+  themeSwatches,
+  contrastText,
+  themeApplyUri,
+  orskinFileName,
+} from '../../lib/theme';
 import { renderMarkdown } from '../../lib/markdown';
 
 export const prerender = false;
@@ -29,6 +37,20 @@ if (dbError) {
 
 const cli = plugin ? `openrom-core --install-plugin ${plugin.id}` : '';
 const published = Boolean(plugin?.sha256);
+
+const theme = Boolean(plugin && isTheme(plugin.category));
+const palette = theme ? themePalette(plugin!.routes) : [];
+const swatches = theme ? themeSwatches(plugin!.routes) : [];
+const applyUri = plugin ? themeApplyUri(plugin.id) : '';
+const downloadName = plugin ? (theme ? orskinFileName(plugin.id) : `${plugin.id}.orplug`) : '';
+
+// Colours drive the mockup preview, so they must be validated (see lib/theme).
+const background = palette.find((entry) => entry.role === 'Background')?.hex ?? '#0d0e15';
+const surface = palette.find((entry) => entry.role === 'Surface')?.hex ?? '#161926';
+const accent = palette.find((entry) => entry.role === 'Accent')?.hex ?? '#00f0ff';
+const text = palette.find((entry) => entry.role === 'Text')?.hex ?? '#ffffff';
+const onBackground = contrastText(background);
+const onAccent = contrastText(accent);
 const readmeHtml = plugin
   ? renderMarkdown(plugin.readme) ||
     '<p class="text-zinc-500">No README has been published for this extension yet.</p>'
@@ -47,7 +69,10 @@ const manifest = plugin
       },
       category: plugin.category,
       description: plugin.description,
-      routes: plugin.routes,
+      // A theme's "routes" column holds its colour palette; label it honestly.
+      ...(isTheme(plugin.category)
+        ? { palette: plugin.routes }
+        : { routes: plugin.routes }),
       platforms: plugin.platforms,
       downloadUrl: plugin.downloadUrl,
       sha256: plugin.sha256 || null,
@@ -129,7 +154,7 @@ const body = dbError
                   v{plugin.version}
                 </span>
                 <span class="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-xs font-medium text-cyan-300">
-                  {plugin.category}
+                  {categoryLabel(plugin.category)}
                 </span>
               </div>
 
@@ -167,19 +192,21 @@ const body = dbError
           <div class="mt-6 flex flex-wrap items-center gap-3">
             {published ? (
               <a
-                href={`openrom://plugin/${plugin.id}`}
+                href={theme ? applyUri : `openrom://plugin/${plugin.id}`}
                 class="inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 px-5 text-sm font-semibold text-zinc-950 shadow-lg shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-purple-400"
               >
-                <Icon name="zap" class="h-4 w-4" />
-                Install in OpenROM
+                <Icon name={theme ? 'palette' : 'zap'} class="h-4 w-4" />
+                {theme ? 'Apply in OpenROM' : 'Install in OpenROM'}
               </a>
             ) : (
               <span
-                title="No .orplug bundle has been published for this extension yet"
+                title={theme
+                  ? 'No .orskin file has been published for this theme yet'
+                  : 'No .orplug bundle has been published for this extension yet'}
                 class="inline-flex h-11 cursor-not-allowed items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-500"
               >
-                <Icon name="zap" class="h-4 w-4" />
-                Bundle not published yet
+                <Icon name={theme ? 'palette' : 'zap'} class="h-4 w-4" />
+                {theme ? 'Theme not published yet' : 'Bundle not published yet'}
               </span>
             )}
 
@@ -189,28 +216,40 @@ const body = dbError
                 class="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
               >
                 <Icon name="download" class="h-4 w-4" />
-                Download .orplug
+                Download {theme ? '.orskin' : '.orplug'}
               </a>
             )}
 
             <button
               type="button"
-              data-copy={cli}
+              data-copy={theme ? applyUri : cli}
               class="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-800 px-5 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:text-white"
             >
-              <Icon name="terminal" class="h-4 w-4" />
-              Copy CLI Install
+              <Icon name={theme ? 'copy' : 'terminal'} class="h-4 w-4" />
+              {theme ? 'Copy URI' : 'Copy CLI Install'}
             </button>
           </div>
 
           {
             published && (
               <p class="mt-3 text-xs text-zinc-500">
-                One-click install needs OpenROM Core installed. If nothing happens, use{' '}
-                <a href={`/api/download/${plugin.id}`} class="text-cyan-400 hover:underline">
-                  the .orplug download
-                </a>{' '}
-                or the CLI command above.
+                {theme ? (
+                  <>
+                    Applying a theme needs OpenROM installed. If nothing happens, use{' '}
+                    <a href={`/api/download/${plugin.id}`} class="text-cyan-400 hover:underline">
+                      the .orskin download
+                    </a>{' '}
+                    and open it from the app.
+                  </>
+                ) : (
+                  <>
+                    One-click install needs OpenROM Core installed. If nothing happens, use{' '}
+                    <a href={`/api/download/${plugin.id}`} class="text-cyan-400 hover:underline">
+                      the .orplug download
+                    </a>{' '}
+                    or the CLI command above.
+                  </>
+                )}
               </p>
             )
           }
@@ -241,11 +280,175 @@ const body = dbError
               <div class="prose mt-4" set:html={readmeHtml} />
             </section>
 
+            {
+              theme && (
+                <>
+                  {/* Mini App Mockup Preview */}
+                  <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+                    <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                      Live Preview
+                    </h2>
+                    <p class="mt-1.5 text-sm text-zinc-400">
+                      A mock OpenROM window painted with this theme's exact colours.
+                    </p>
+
+                    <div
+                      class="mt-4 overflow-hidden rounded-xl border"
+                      style={`background:${background};border-color:${surface}`}
+                      data-theme-preview
+                    >
+                      {/* Title bar */}
+                      <div
+                        class="flex items-center gap-2 px-4 py-2.5"
+                        style={`background:${surface}`}
+                      >
+                        <span class="flex gap-1.5" aria-hidden="true">
+                          <span
+                            class="h-2.5 w-2.5 rounded-full"
+                            style={`background:${accent}`}
+                          />
+                          <span
+                            class="h-2.5 w-2.5 rounded-full opacity-60"
+                            style={`background:${accent}`}
+                          />
+                          <span
+                            class="h-2.5 w-2.5 rounded-full opacity-30"
+                            style={`background:${accent}`}
+                          />
+                        </span>
+                        <span
+                          class="ml-2 text-xs font-medium"
+                          style={`color:${contrastText(surface)}`}
+                        >
+                          OpenROM — {plugin.name}
+                        </span>
+                      </div>
+
+                      {/* Body */}
+                      <div class="flex items-center gap-5 p-5">
+                        <img
+                          src="/images/romeo-logo.png"
+                          alt="ROMeo, the OpenROM mascot, rendered over the theme colours"
+                          width="64"
+                          height="64"
+                          class="h-16 w-16 shrink-0 rounded-xl object-contain"
+                          style={`background:${surface}`}
+                        />
+                        <div class="min-w-0 flex-1">
+                          <p
+                            class="truncate text-sm font-semibold"
+                            style={`color:${onBackground}`}
+                          >
+                            Super Preserved Adventure
+                          </p>
+                          <p
+                            class="mt-0.5 text-xs opacity-70"
+                            style={`color:${onBackground}`}
+                          >
+                            Disc 1 of 2 · Verified dump
+                          </p>
+                          <div class="mt-3 flex items-center gap-2">
+                            <span
+                              class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold"
+                              style={`background:${accent};color:${onAccent}`}
+                            >
+                              ▶ Play
+                            </span>
+                            <span
+                              class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium"
+                              style={`background:${surface};color:${contrastText(surface)}`}
+                            >
+                              Library
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Colour Palette Inspector */}
+                  <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+                    <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                      Colour Palette Inspector
+                    </h2>
+                    {palette.length > 0 ? (
+                      <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+                        {palette.map((entry) => (
+                          <li class="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+                            <span
+                              class="h-9 w-9 shrink-0 rounded-lg ring-1 ring-inset ring-white/15"
+                              style={`background:${entry.hex}`}
+                              aria-hidden="true"
+                            />
+                            <span class="min-w-0 flex-1">
+                              <span class="block text-xs font-medium text-zinc-400">
+                                {entry.role}
+                              </span>
+                              <span class="block font-mono text-sm text-zinc-200">
+                                {entry.hex}
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              data-copy={entry.hex}
+                              aria-label={`Copy ${entry.role} colour ${entry.hex}`}
+                              class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-400 transition hover:text-cyan-300"
+                            >
+                              <Icon name="copy" class="h-4 w-4" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p class="mt-4 text-sm text-zinc-500">
+                        This theme has not published a colour palette yet.
+                      </p>
+                    )}
+
+                    {swatches.length > 0 && (
+                      <div class="mt-5 border-t border-zinc-800/70 pt-4">
+                        <p class="text-xs font-medium text-zinc-500">Raw palette</p>
+                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                          {swatches.map((hex) => (
+                            <span
+                              class="h-6 w-6 rounded-full ring-1 ring-inset ring-white/15"
+                              style={`background:${hex}`}
+                              title={hex}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                </>
+              )
+            }
+
             <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
               <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
-                Supported Routes
+                {theme ? 'How it applies' : 'Supported Routes'}
               </h2>
-              {plugin.routes.length > 0 ? (
+              {theme ? (
+                <ol class="mt-4 flex flex-col gap-2 text-sm text-zinc-400">
+                  <li class="flex gap-2">
+                    <span class="text-zinc-600">1.</span>
+                    <span>
+                      Download the <span class="font-mono text-zinc-300">.orskin</span> file, or
+                      open the deep link below directly from OpenROM.
+                    </span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-zinc-600">2.</span>
+                    <span>
+                      OpenROM reads the palette and repaints its interface immediately — no restart.
+                    </span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-zinc-600">3.</span>
+                    <span>Switch back to any other theme from <em>Settings → Appearance</em>.</span>
+                  </li>
+                </ol>
+              ) : plugin.routes.length > 0 ? (
                 <div class="mt-4 flex flex-wrap gap-2">
                   {plugin.routes.map((route) => (
                     <span class="inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-1.5 font-mono text-xs text-zinc-200">
@@ -261,50 +464,101 @@ const body = dbError
 
             <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
               <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
-                Installation
+                {theme ? 'Apply this theme' : 'Installation'}
               </h2>
 
-              <div class="mt-4">
-                <h3 class="text-sm font-semibold text-zinc-200">Command line</h3>
-                <p class="mt-1.5 text-sm text-zinc-400">
-                  Install with OpenROM Core. This fetches the bundle and verifies its SHA-256
-                  before installing.
-                </p>
-                <div class="mt-3 flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-                  <code class="flex-1 overflow-x-auto font-mono text-xs text-cyan-300">{cli}</code>
-                  <button
-                    type="button"
-                    data-copy={cli}
-                    aria-label="Copy install command"
-                    class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-400 transition hover:text-cyan-300"
-                  >
-                    <Icon name="copy" class="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+              {theme ? (
+                <>
+                  <div class="mt-4">
+                    <h3 class="text-sm font-semibold text-zinc-200">Deep link</h3>
+                    <p class="mt-1.5 text-sm text-zinc-400">
+                      Apply the theme straight from the app. OpenROM fetches the palette and
+                      activates it without a restart.
+                    </p>
+                    <div class="mt-3 flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+                      <code class="flex-1 overflow-x-auto font-mono text-xs text-cyan-300">
+                        {applyUri}
+                      </code>
+                      <button
+                        type="button"
+                        data-copy={applyUri}
+                        aria-label="Copy theme URI"
+                        class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-400 transition hover:text-cyan-300"
+                      >
+                        <Icon name="copy" class="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
 
-              <div class="mt-6">
-                <h3 class="text-sm font-semibold text-zinc-200">Desktop app</h3>
-                <ol class="mt-2 flex flex-col gap-1.5 text-sm text-zinc-400">
-                  <li class="flex gap-2">
-                    <span class="text-zinc-600">1.</span>
-                    <span>
-                      Download the <span class="font-mono text-zinc-300">.orplug</span> bundle
-                      above.
-                    </span>
-                  </li>
-                  <li class="flex gap-2">
-                    <span class="text-zinc-600">2.</span>
-                    <span>
-                      Drag the file onto the OpenROM window, or use <em>Install from file…</em>.
-                    </span>
-                  </li>
-                  <li class="flex gap-2">
-                    <span class="text-zinc-600">3.</span>
-                    <span>OpenROM checks the checksum and installs it automatically.</span>
-                  </li>
-                </ol>
-              </div>
+                  <div class="mt-6">
+                    <h3 class="text-sm font-semibold text-zinc-200">Or install from file</h3>
+                    <ol class="mt-2 flex flex-col gap-1.5 text-sm text-zinc-400">
+                      <li class="flex gap-2">
+                        <span class="text-zinc-600">1.</span>
+                        <span>
+                          Download the <span class="font-mono text-zinc-300">.orskin</span> file
+                          above.
+                        </span>
+                      </li>
+                      <li class="flex gap-2">
+                        <span class="text-zinc-600">2.</span>
+                        <span>
+                          Drag it onto the OpenROM window, or use{' '}
+                          <em>Settings → Appearance → Import…</em>.
+                        </span>
+                      </li>
+                      <li class="flex gap-2">
+                        <span class="text-zinc-600">3.</span>
+                        <span>OpenROM validates the palette and applies it right away.</span>
+                      </li>
+                    </ol>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div class="mt-4">
+                    <h3 class="text-sm font-semibold text-zinc-200">Command line</h3>
+                    <p class="mt-1.5 text-sm text-zinc-400">
+                      Install with OpenROM Core. This fetches the bundle and verifies its SHA-256
+                      before installing.
+                    </p>
+                    <div class="mt-3 flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+                      <code class="flex-1 overflow-x-auto font-mono text-xs text-cyan-300">{cli}</code>
+                      <button
+                        type="button"
+                        data-copy={cli}
+                        aria-label="Copy install command"
+                        class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-400 transition hover:text-cyan-300"
+                      >
+                        <Icon name="copy" class="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mt-6">
+                    <h3 class="text-sm font-semibold text-zinc-200">Desktop app</h3>
+                    <ol class="mt-2 flex flex-col gap-1.5 text-sm text-zinc-400">
+                      <li class="flex gap-2">
+                        <span class="text-zinc-600">1.</span>
+                        <span>
+                          Download the <span class="font-mono text-zinc-300">.orplug</span> bundle
+                          above.
+                        </span>
+                      </li>
+                      <li class="flex gap-2">
+                        <span class="text-zinc-600">2.</span>
+                        <span>
+                          Drag the file onto the OpenROM window, or use <em>Install from file…</em>.
+                        </span>
+                      </li>
+                      <li class="flex gap-2">
+                        <span class="text-zinc-600">3.</span>
+                        <span>OpenROM checks the checksum and installs it automatically.</span>
+                      </li>
+                    </ol>
+                  </div>
+                </>
+              )}
             </section>
           </div>
 
