@@ -12,6 +12,7 @@ import {
   orskinFileName,
 } from '../../lib/theme';
 import { renderMarkdown } from '../../lib/markdown';
+import { compatibilityFor, detectOS, supportedLabel } from '../../lib/detectOS';
 
 export const prerender = false;
 
@@ -79,6 +80,14 @@ const manifest = plugin
       icon: plugin.icon,
     }
   : null;
+
+// Compatibility is decided from the request's User-Agent so the pill is correct
+// on first paint. The client re-checks against navigator.userAgent and corrects
+// it (iPadOS in desktop mode reports a Macintosh UA), which is why the server
+// result is only a starting point.
+const detectedOS = detectOS(Astro.request.headers.get('user-agent'));
+const compatibility = plugin ? compatibilityFor(detectedOS, plugin.platforms) : 'unknown';
+const supportedText = plugin ? supportedLabel(plugin.platforms) : '';
 
 const heading = dbError ? 'Plugin unavailable' : 'Plugin not found';
 const displayHeading = dbError
@@ -188,6 +197,68 @@ const body = dbError
             </div>
           </div>
 
+          {/* Live OS compatibility. The server renders it from the request
+              User-Agent so it is correct on first paint; the client re-checks
+              and only toggles `hidden` on whole nodes, so a correction can never
+              shift the layout. */}
+          <div
+            class="mt-6"
+            data-compat
+            data-compat-state={compatibility}
+            data-platforms={plugin.platforms.join(',')}
+          >
+            <div
+              data-compat-shell
+              class:list={[
+                'rounded-xl border p-4',
+                compatibility === 'compatible' &&
+                  'border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_25px_rgba(16,185,129,0.15)]',
+                compatibility === 'incompatible' &&
+                  'border-amber-500/40 bg-amber-500/10 shadow-[0_0_25px_rgba(245,158,11,0.12)]',
+                compatibility === 'unknown' && 'hidden',
+              ]}
+            >
+              <div class="flex items-start gap-2.5">
+                <span
+                  data-compat-icon="compatible"
+                  class:list={['shrink-0', compatibility !== 'compatible' && 'hidden']}
+                >
+                  <Icon name="check-circle" class="h-5 w-5 text-emerald-400" />
+                </span>
+                <span
+                  data-compat-icon="incompatible"
+                  class:list={['shrink-0', compatibility !== 'incompatible' && 'hidden']}
+                >
+                  <Icon name="alert-triangle" class="h-5 w-5 text-amber-400" />
+                </span>
+                <div class="min-w-0">
+                  <p
+                    data-compat-text
+                    class:list={[
+                      'text-sm font-medium',
+                      compatibility === 'compatible' && 'text-emerald-300',
+                      compatibility === 'incompatible' && 'text-amber-300',
+                    ]}
+                  >
+                    {compatibility === 'compatible'
+                      ? `✅ Compatible with your system (${detectedOS})`
+                      : compatibility === 'incompatible'
+                        ? `⚠️ Not compatible with your current OS (${detectedOS})`
+                        : ''}
+                  </p>
+
+                  <p
+                    data-compat-supported
+                    class:list={['mt-2 text-sm text-zinc-400', compatibility !== 'incompatible' && 'hidden']}
+                  >
+                    Only available on:{' '}
+                    <span class="font-medium text-zinc-300" data-compat-platforms>{supportedText}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Actions */}
           <div class="mt-6 flex flex-wrap items-center gap-3">
             {published ? (
@@ -253,6 +324,22 @@ const body = dbError
               </p>
             )
           }
+
+          {/* The download stays available when the visitor's OS is not supported,
+              but the label says what they are getting so it is a deliberate choice. */}
+          <p
+            data-compat-download-anyway
+            class:list={[
+              'mt-3 text-xs text-zinc-500',
+              compatibility !== 'incompatible' && 'hidden',
+            ]}
+          >
+            Downloading anyway?{' '}
+            <a href={`/api/download/${plugin.id}`} class="text-amber-400 hover:underline">
+              Download anyway for another PC
+            </a>
+            .
+          </p>
 
           {/* Quick facts */}
           <dl class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-zinc-800/70 pt-5 text-xs text-zinc-500">
@@ -605,6 +692,10 @@ const body = dbError
         </div>
       </main>
       <script>
+        import { initCompatibility } from '../../lib/compat-client';
+
+        document.querySelectorAll<HTMLElement>('[data-compat]').forEach(initCompatibility);
+
         document.addEventListener('click', async (event) => {
           const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-copy]');
           if (!trigger) return;
