@@ -18,3 +18,6 @@ node_modules/
 # Astro build output
 dist/
 .astro/
+
+# Local .orskin authoring staging (packages are published to SourceForge, not committed)
+stage_skin/
