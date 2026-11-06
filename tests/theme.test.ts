@@ -10,6 +10,7 @@ import {
   themeSwatches,
   themeScreenshots,
   hasScreenshots,
+  themeGallery,
   sanitizeScreenshotUrl,
   contrastText,
   themeApplyUri,
@@ -155,4 +156,26 @@ test('hasScreenshots is true only when at least one URL survives validation', ()
   assert.equal(hasScreenshots(['javascript:alert(1)']), false);
   assert.equal(hasScreenshots([]), false);
   assert.equal(hasScreenshots(null), false);
+});
+
+test('themeGallery prefers the listing screenshots over a bundled preview', () => {
+  assert.deepEqual(themeGallery('cyberpunk-neon', ['/images/romeo-banner.png'], true), [
+    '/images/romeo-banner.png',
+  ]);
+});
+
+test('themeGallery falls back to the bundled preview when screenshots are empty', () => {
+  assert.deepEqual(themeGallery('anime-tsundere', [], true), ['/images/previews/anime-tsundere.png']);
+  assert.deepEqual(themeGallery('anime-tsundere', null, true), ['/images/previews/anime-tsundere.png']);
+});
+
+test('themeGallery ignores invalid screenshots and still uses the bundled preview', () => {
+  assert.deepEqual(themeGallery('anime-tsundere', ['javascript:alert(1)'], true), [
+    '/images/previews/anime-tsundere.png',
+  ]);
+});
+
+test('themeGallery is empty with no screenshots and no bundled preview (mock box)', () => {
+  assert.deepEqual(themeGallery('unknown-theme', [], false), []);
+  assert.deepEqual(themeGallery('unknown-theme', null, false), []);
 });

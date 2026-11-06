@@ -7,7 +7,7 @@ import {
   isTheme,
   themePalette,
   themeSwatches,
-  themeScreenshots,
+  themeGallery,
   contrastText,
   themeApplyUri,
   orskinFileName,
@@ -43,8 +43,24 @@ const published = Boolean(plugin?.sha256);
 const theme = Boolean(plugin && isTheme(plugin.category));
 const palette = theme ? themePalette(plugin!.routes) : [];
 const swatches = theme ? themeSwatches(plugin!.routes) : [];
-const screenshots = plugin ? themeScreenshots(plugin.screenshots) : [];
-const showGallery = theme && screenshots.length > 0;
+
+// Bundled preview images live under public/images/previews/<id>.png and are
+// resolved at build time: a Cloudflare Worker has no filesystem to probe at
+// request time, so a glob is the only way to know which ids ship a preview.
+const previewModules = import.meta.glob('../../../public/images/previews/*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
+const previewIds = new Set(
+  Object.keys(previewModules).map((path) => path.split('/').pop()!.replace(/\.png$/, '')),
+);
+
+// Prefer the row's own screenshots, then a bundled preview, and only then fall
+// back to the CSS mock box.
+const gallery = plugin ? themeGallery(plugin.id, plugin.screenshots, previewIds.has(plugin.id)) : [];
+const showGallery = theme && gallery.length > 0;
+const showMockup = theme && gallery.length === 0;
 const applyUri = plugin ? themeApplyUri(plugin.id) : '';
 const downloadName = plugin ? (theme ? orskinFileName(plugin.id) : `${plugin.id}.orplug`) : '';
 
@@ -386,11 +402,11 @@ const body = dbError
                       {/* Featured frame — every image is rendered up front and toggled with
                           `hidden`, so switching thumbnails never waits on a network fetch. */}
                       <div class="mt-4 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
-                        {screenshots.map((shot, index) => (
+                        {gallery.map((shot, index) => (
                           <img
                             data-gallery-frame
                             src={shot}
-                            alt={`${plugin.name} applied to the OpenROM desktop app — screenshot ${index + 1} of ${screenshots.length}`}
+                            alt={`${plugin.name} applied to the OpenROM desktop app — screenshot ${index + 1} of ${gallery.length}`}
                             loading={index === 0 ? 'eager' : 'lazy'}
                             decoding="async"
                             class:list={['h-auto w-full', index !== 0 && 'hidden']}
@@ -398,13 +414,13 @@ const body = dbError
                         ))}
                       </div>
 
-                      {screenshots.length > 1 && (
+                      {gallery.length > 1 && (
                         <div
                           class="mt-4 flex flex-wrap gap-3"
                           role="tablist"
                           aria-label="Theme screenshots"
                         >
-                          {screenshots.map((shot, index) => (
+                          {gallery.map((shot, index) => (
                             <button
                               type="button"
                               data-gallery-thumb
@@ -430,88 +446,90 @@ const body = dbError
                     </section>
                   )}
 
-                  {/* Mini App Mockup Preview */}
-                  <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
-                    <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
-                      Live Preview
-                    </h2>
-                    <p class="mt-1.5 text-sm text-zinc-400">
-                      A mock OpenROM window painted with this theme's exact colours.
-                    </p>
+                  {/* Mini App Mockup Preview — only when there is no real image to show. */}
+                  {showMockup && (
+                    <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+                      <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                        Live Preview
+                      </h2>
+                      <p class="mt-1.5 text-sm text-zinc-400">
+                        A mock OpenROM window painted with this theme's exact colours.
+                      </p>
 
-                    <div
-                      class="mt-4 overflow-hidden rounded-xl border"
-                      style={`background:${background};border-color:${surface}`}
-                      data-theme-preview
-                    >
-                      {/* Title bar */}
                       <div
-                        class="flex items-center gap-2 px-4 py-2.5"
-                        style={`background:${surface}`}
+                        class="mt-4 overflow-hidden rounded-xl border"
+                        style={`background:${background};border-color:${surface}`}
+                        data-theme-preview
                       >
-                        <span class="flex gap-1.5" aria-hidden="true">
-                          <span
-                            class="h-2.5 w-2.5 rounded-full"
-                            style={`background:${accent}`}
-                          />
-                          <span
-                            class="h-2.5 w-2.5 rounded-full opacity-60"
-                            style={`background:${accent}`}
-                          />
-                          <span
-                            class="h-2.5 w-2.5 rounded-full opacity-30"
-                            style={`background:${accent}`}
-                          />
-                        </span>
-                        <span
-                          class="ml-2 text-xs font-medium"
-                          style={`color:${contrastText(surface)}`}
-                        >
-                          OpenROM — {plugin.name}
-                        </span>
-                      </div>
-
-                      {/* Body */}
-                      <div class="flex items-center gap-5 p-5">
-                        <img
-                          src="/images/romeo-logo.png"
-                          alt="ROMeo, the OpenROM mascot, rendered over the theme colours"
-                          width="64"
-                          height="64"
-                          class="h-16 w-16 shrink-0 rounded-xl object-contain"
+                        {/* Title bar */}
+                        <div
+                          class="flex items-center gap-2 px-4 py-2.5"
                           style={`background:${surface}`}
-                        />
-                        <div class="min-w-0 flex-1">
-                          <p
-                            class="truncate text-sm font-semibold"
-                            style={`color:${onBackground}`}
-                          >
-                            Super Preserved Adventure
-                          </p>
-                          <p
-                            class="mt-0.5 text-xs opacity-70"
-                            style={`color:${onBackground}`}
-                          >
-                            Disc 1 of 2 · Verified dump
-                          </p>
-                          <div class="mt-3 flex items-center gap-2">
+                        >
+                          <span class="flex gap-1.5" aria-hidden="true">
                             <span
-                              class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold"
-                              style={`background:${accent};color:${onAccent}`}
-                            >
-                              ▶ Play
-                            </span>
+                              class="h-2.5 w-2.5 rounded-full"
+                              style={`background:${accent}`}
+                            />
                             <span
-                              class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium"
-                              style={`background:${surface};color:${contrastText(surface)}`}
+                              class="h-2.5 w-2.5 rounded-full opacity-60"
+                              style={`background:${accent}`}
+                            />
+                            <span
+                              class="h-2.5 w-2.5 rounded-full opacity-30"
+                              style={`background:${accent}`}
+                            />
+                          </span>
+                          <span
+                            class="ml-2 text-xs font-medium"
+                            style={`color:${contrastText(surface)}`}
+                          >
+                            OpenROM — {plugin.name}
+                          </span>
+                        </div>
+
+                        {/* Body */}
+                        <div class="flex items-center gap-5 p-5">
+                          <img
+                            src="/images/romeo-logo.png"
+                            alt="ROMeo, the OpenROM mascot, rendered over the theme colours"
+                            width="64"
+                            height="64"
+                            class="h-16 w-16 shrink-0 rounded-xl object-contain"
+                            style={`background:${surface}`}
+                          />
+                          <div class="min-w-0 flex-1">
+                            <p
+                              class="truncate text-sm font-semibold"
+                              style={`color:${onBackground}`}
                             >
-                              Library
-                            </span>
+                              Super Preserved Adventure
+                            </p>
+                            <p
+                              class="mt-0.5 text-xs opacity-70"
+                              style={`color:${onBackground}`}
+                            >
+                              Disc 1 of 2 · Verified dump
+                            </p>
+                            <div class="mt-3 flex items-center gap-2">
+                              <span
+                                class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold"
+                                style={`background:${accent};color:${onAccent}`}
+                              >
+                                ▶ Play
+                              </span>
+                              <span
+                                class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium"
+                                style={`background:${surface};color:${contrastText(surface)}`}
+                              >
+                                Library
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </section>
+                    </section>
+                  )}
 
                   {/* Colour Palette Inspector */}
                   <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
