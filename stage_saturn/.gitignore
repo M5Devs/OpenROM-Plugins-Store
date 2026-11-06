@@ -1,0 +1,5 @@
+# Staged plugin binaries are build inputs fetched from the upstream v0.1.0
+# release (github.com/ralfguth/saturn-patcher-egui/releases), not source. The
+# manifest, README and LICENSE are committed so the bundle contents stay
+# reviewable; the binary payload is not.
+bin/

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "saturn-patcher",
+  "name": "Saturn Patcher",
+  "version": "0.1.0",
+  "minCoreVersion": "3.9.0",
+  "publisher": {
+    "id": "m5dev",
+    "name": "M5 Dev",
+    "verified": true
+  },
+  "category": "Sega",
+  "description": "Sega Saturn disc image patcher supporting official .ssp patch archives for fan translations and hacks.",
+  "routes": [
+    { "from": "CUE", "to": "CUE" },
+    { "from": "BIN", "to": "BIN" },
+    { "from": "ISO", "to": "ISO" }
+  ],
+  "execution": {
+    "kind": "process",
+    "environments": {
+      "windows_x64": {
+        "executable": "bin/windows/x86_64/saturn-patcher.exe",
+        "sha256": "bdb5581d7bfba1d2a2ed2ffb489cb2f6a4891e4ffe5fba23fa0015bfeeaa0f8b"
+      },
+      "linux_x64": {
+        "executable": "bin/linux/x86_64/saturn-patcher",
+        "sha256": "02fade737010d8dccecd4f4685deca86586551622ec6002c7ba011d28ab5ee49"
+      }
+    },
+    "args": [
+      { "kind": "executable" },
+      { "kind": "input" },
+      { "kind": "output" }
+    ],
+    "successExitCodes": [0],
+    "timeoutSeconds": 0
+  },
+  "extensions": [
+    { "ext": ".ssp", "format": "SSP", "platform": "Sega Saturn", "color": "#3b6ea5" }
+  ]
+}
