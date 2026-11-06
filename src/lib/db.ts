@@ -20,6 +20,7 @@ export interface PluginRow {
   readme_markdown: string | null;
   routes_json: string | null;
   platforms_json: string | null;
+  screenshots_json: string | null;
   download_url: string;
   sha256: string;
   icon: string | null;
@@ -41,6 +42,7 @@ export interface Plugin {
   readme: string;
   routes: string[];
   platforms: string[];
+  screenshots: string[];
   downloadUrl: string;
   sha256: string;
   icon: string;
@@ -72,6 +74,7 @@ export function toPlugin(row: PluginRow): Plugin {
     readme: row.readme_markdown ?? '',
     routes: parseJsonArray(row.routes_json),
     platforms: parseJsonArray(row.platforms_json),
+    screenshots: parseJsonArray(row.screenshots_json),
     downloadUrl: row.download_url,
     sha256: row.sha256 ?? '',
     icon: row.icon ?? 'package',
@@ -101,7 +104,7 @@ const PLUGIN_COLUMNS = `
   COALESCE(pub.name, p.publisher_name)         AS publisher_name,
   COALESCE(pub.verified, p.publisher_verified) AS publisher_verified,
   p.category, p.description, p.readme_markdown, p.routes_json, p.platforms_json,
-  p.download_url, p.sha256, p.icon, p.downloads, p.created_at
+  p.screenshots_json, p.download_url, p.sha256, p.icon, p.downloads, p.created_at
 `;
 
 const PLUGIN_SOURCE = `FROM plugins p LEFT JOIN publishers pub ON pub.id = p.publisher_id`;

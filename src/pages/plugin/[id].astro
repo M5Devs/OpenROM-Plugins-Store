@@ -7,6 +7,7 @@ import {
   isTheme,
   themePalette,
   themeSwatches,
+  themeScreenshots,
   contrastText,
   themeApplyUri,
   orskinFileName,
@@ -42,6 +43,8 @@ const published = Boolean(plugin?.sha256);
 const theme = Boolean(plugin && isTheme(plugin.category));
 const palette = theme ? themePalette(plugin!.routes) : [];
 const swatches = theme ? themeSwatches(plugin!.routes) : [];
+const screenshots = plugin ? themeScreenshots(plugin.screenshots) : [];
+const showGallery = theme && screenshots.length > 0;
 const applyUri = plugin ? themeApplyUri(plugin.id) : '';
 const downloadName = plugin ? (theme ? orskinFileName(plugin.id) : `${plugin.id}.orplug`) : '';
 
@@ -136,9 +139,6 @@ const body = dbError
           )}
         </div>
       </main>
-      <script>
-        document.querySelector('[data-retry]')?.addEventListener('click', () => location.reload());
-      </script>
     ) : (
       <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <a
@@ -370,6 +370,66 @@ const body = dbError
             {
               theme && (
                 <>
+                  {/* Screenshot showcase — the OpenROM desktop app wearing this skin. */}
+                  {showGallery && (
+                    <section
+                      class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6"
+                      data-gallery
+                    >
+                      <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                        Screenshots
+                      </h2>
+                      <p class="mt-1.5 text-sm text-zinc-400">
+                        OpenROM running with <span class="text-zinc-200">{plugin.name}</span> applied.
+                      </p>
+
+                      {/* Featured frame — every image is rendered up front and toggled with
+                          `hidden`, so switching thumbnails never waits on a network fetch. */}
+                      <div class="mt-4 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+                        {screenshots.map((shot, index) => (
+                          <img
+                            data-gallery-frame
+                            src={shot}
+                            alt={`${plugin.name} applied to the OpenROM desktop app — screenshot ${index + 1} of ${screenshots.length}`}
+                            loading={index === 0 ? 'eager' : 'lazy'}
+                            decoding="async"
+                            class:list={['h-auto w-full', index !== 0 && 'hidden']}
+                          />
+                        ))}
+                      </div>
+
+                      {screenshots.length > 1 && (
+                        <div
+                          class="mt-4 flex flex-wrap gap-3"
+                          role="tablist"
+                          aria-label="Theme screenshots"
+                        >
+                          {screenshots.map((shot, index) => (
+                            <button
+                              type="button"
+                              data-gallery-thumb
+                              role="tab"
+                              aria-selected={index === 0 ? 'true' : 'false'}
+                              aria-label={`Show screenshot ${index + 1}`}
+                              class:list={[
+                                'h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400',
+                                index === 0 ? 'border-cyan-400' : 'border-zinc-800 hover:border-zinc-700',
+                              ]}
+                            >
+                              <img
+                                src={shot}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                class="h-full w-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  )}
+
                   {/* Mini App Mockup Preview */}
                   <section class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
                     <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400">
@@ -691,25 +751,29 @@ const body = dbError
           </aside>
         </div>
       </main>
-      <script>
-        import { initCompatibility } from '../../lib/compat-client';
-
-        document.querySelectorAll<HTMLElement>('[data-compat]').forEach(initCompatibility);
-
-        document.addEventListener('click', async (event) => {
-          const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-copy]');
-          if (!trigger) return;
-          const text = trigger.dataset.copy ?? '';
-          try {
-            await navigator.clipboard.writeText(text);
-            const original = trigger.innerHTML;
-            trigger.innerHTML = '<span class="text-cyan-400">copied</span>';
-            setTimeout(() => (trigger.innerHTML = original), 1200);
-          } catch {
-            /* clipboard unavailable */
-          }
-        });
-      </script>
     )
   }
 </Layout>
+
+<script>
+  import { initCompatibility } from '../../lib/compat-client';
+  import { initGallery } from '../../lib/gallery-client';
+
+  document.querySelectorAll<HTMLElement>('[data-compat]').forEach(initCompatibility);
+  document.querySelectorAll<HTMLElement>('[data-gallery]').forEach(initGallery);
+  document.querySelector('[data-retry]')?.addEventListener('click', () => location.reload());
+
+  document.addEventListener('click', async (event) => {
+    const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-copy]');
+    if (!trigger) return;
+    const text = trigger.dataset.copy ?? '';
+    try {
+      await navigator.clipboard.writeText(text);
+      const original = trigger.innerHTML;
+      trigger.innerHTML = '<span class="text-cyan-400">copied</span>';
+      setTimeout(() => (trigger.innerHTML = original), 1200);
+    } catch {
+      /* clipboard unavailable */
+    }
+  });
+</script>

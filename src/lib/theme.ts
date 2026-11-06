@@ -94,3 +94,47 @@ export function themeApplyUri(id: string): string {
 export function orskinFileName(id: string): string {
   return `${id}.orskin`;
 }
+
+/**
+ * A screenshot URL is only allowed to be a root-relative path or an https URL.
+ * That keeps the gallery from being pointed at `javascript:` or a `data:` blob
+ * via the database, and stops a stored value from reaching the DOM unchecked.
+ * A fragment is stripped and the URL is normalised by `new URL`, so the value
+ * handed to `<img src>` is never the raw stored string.
+ */
+export function sanitizeScreenshotUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const raw = value.trim();
+  if (raw === '') return null;
+  // Scheme-relative (`//host/x`) is neither a root-relative path nor an https
+  // URL, so it is refused rather than silently resolved against a host.
+  if (raw.startsWith('//')) return null;
+  try {
+    const base = 'https://openrom.invalid';
+    const url = new URL(raw, base);
+    if (url.origin === base) {
+      if (!raw.startsWith('/')) return null; // relative without a leading slash
+    } else if (url.protocol !== 'https:') {
+      return null; // absolute URLs must be https
+    }
+    url.hash = '';
+    return url.origin === base ? `${url.pathname}${url.search}` : url.href;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The validated screenshot URLs for a listing, in order. Invalid entries are
+ * dropped rather than throwing, so a single bad row never breaks the page.
+ */
+export function themeScreenshots(screenshots: string[] | null | undefined): string[] {
+  return (screenshots ?? [])
+    .map(sanitizeScreenshotUrl)
+    .filter((url): url is string => url !== null);
+}
+
+/** True when a listing should render the screenshot showcase. */
+export function hasScreenshots(screenshots: string[] | null | undefined): boolean {
+  return themeScreenshots(screenshots).length > 0;
+}

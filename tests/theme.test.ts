@@ -8,6 +8,9 @@ import {
   isTheme,
   themePalette,
   themeSwatches,
+  themeScreenshots,
+  hasScreenshots,
+  sanitizeScreenshotUrl,
   contrastText,
   themeApplyUri,
   orskinFileName,
@@ -110,4 +113,46 @@ test('themeApplyUri and orskinFileName build the deep link and file name', () =>
 
 test('THEME_PLATFORM is the OS-agnostic label the migration uses', () => {
   assert.equal(THEME_PLATFORM, 'All Platforms');
+});
+
+test('sanitizeScreenshotUrl keeps root-relative paths and https URLs', () => {
+  assert.equal(sanitizeScreenshotUrl('/images/romeo-banner.png'), '/images/romeo-banner.png');
+  assert.equal(sanitizeScreenshotUrl('  /images/shot.webp  '), '/images/shot.webp');
+  assert.equal(
+    sanitizeScreenshotUrl('https://cdn.example.com/a/b.jpg?v=2'),
+    'https://cdn.example.com/a/b.jpg?v=2',
+  );
+  // A fragment never affects what is fetched, so it is stripped.
+  assert.equal(sanitizeScreenshotUrl('/images/a.png#hero'), '/images/a.png');
+});
+
+test('sanitizeScreenshotUrl rejects anything that could be script-bearing', () => {
+  for (const value of [
+    'javascript:alert(1)',
+    'data:image/svg+xml,<svg onload=alert(1)>',
+    'http://insecure.example.com/a.png',
+    '//evil.example.com/a.png',
+    'images/relative-no-slash.png',
+    '',
+    '   ',
+    null,
+    undefined,
+    42,
+    {},
+  ]) {
+    assert.equal(sanitizeScreenshotUrl(value), null, `${String(value)} should be rejected`);
+  }
+});
+
+test('themeScreenshots drops invalid entries and keeps the rest in order', () => {
+  assert.deepEqual(themeScreenshots(['/a.png', 'javascript:alert(1)', '/b.png']), ['/a.png', '/b.png']);
+  assert.deepEqual(themeScreenshots(null), []);
+  assert.deepEqual(themeScreenshots([]), []);
+});
+
+test('hasScreenshots is true only when at least one URL survives validation', () => {
+  assert.equal(hasScreenshots(['/images/romeo-banner.png']), true);
+  assert.equal(hasScreenshots(['javascript:alert(1)']), false);
+  assert.equal(hasScreenshots([]), false);
+  assert.equal(hasScreenshots(null), false);
 });
